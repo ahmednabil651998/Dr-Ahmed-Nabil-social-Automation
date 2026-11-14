@@ -25,6 +25,11 @@ function onOpen() {
     .addSeparator()
     .addItem('تجربة: ابعت بوست دلوقتي للموافقة', 'sendNextNow')
     .addItem('فحص الحالة', 'statusCheck')
+    .addSeparator()
+    .addSubMenu(SpreadsheetApp.getUi().createMenu('الريلز')
+      .addItem('تجهيز تاب Reels', 'setupReelsSheet')
+      .addItem('تجربة آمنة: ارفع أول ريل كمسودة على فيسبوك', 'testReelDraft')
+      .addItem('ابعت ريل دلوقتي للموافقة', 'sendReelNow'))
     .addToUi();
 }
 
@@ -115,6 +120,7 @@ function ensureHashtags_(caption) {
 
 function dailyJob() {
   var now = new Date();
+  try { reelsDailyJob_(now); } catch (e) { notify_('❌ خطأ في الريلز: ' + e.message); } // Reels.gs
   if (Number(Utilities.formatDate(now, TZ, 'H')) !== SEND_HOUR) return;
   var today = cairoDate_(now);
   if (props_().getProperty('LAST_SENT_DATE') === today) return;
@@ -183,6 +189,7 @@ function handleUpdate_(u) {
     var cq = u.callback_query;
     if (String(cq.from.id) !== chat) return;
     tg_('answerCallbackQuery', { callback_query_id: cq.id });
+    if (cq.data.charAt(0) === 'r') { handleReelCallback_(cq.data); return; } // زراير الريلز (Reels.gs)
     var parts = cq.data.split(':'), act = parts[0], row = Number(parts[1]);
     var status = cellText_(row, C.STATUS);
     if (act === 'ok') {
@@ -204,6 +211,7 @@ function handleUpdate_(u) {
   var m = u.message;
   if (!m || String(m.chat.id) !== chat) return;
   var text = m.text || '';
+  if (handleReelMessage_(text)) return; // رسايل الريلز (Reels.gs)
   var editRow = Number(props_().getProperty('EDIT_ROW') || 0);
   if (editRow && text && text.charAt(0) !== '/') {
     cell_(editRow, C.CAPTION).setValue(ensureHashtags_(text));
@@ -213,7 +221,7 @@ function handleUpdate_(u) {
   } else if (text === '/post') {
     sendNext_(cairoDate_());
   } else if (text === '/start' || text === '/help') {
-    notify_('أنا بعتلك بوست النهارده كل يوم الساعة 5 العصر للموافقة.\n/post = ابعتلي بوست دلوقتي');
+    notify_('أنا بعتلك بوست النهارده كل يوم الساعة 5 العصر، وريل النهارده الساعة 8 بالليل للموافقة.\n/post = ابعتلي بوست دلوقتي\n/reel = ابعتلي ريل دلوقتي');
   }
 }
 
