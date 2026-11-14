@@ -91,10 +91,10 @@ function sendReelForApproval_(row) {
   ]});
   var head = '🎬 ريل رقم ' + rtext_(row, RC.NUM) + ' — ' + rtext_(row, RC.TITLE);
   var full = head + '\n\n' + caption;
-  var short = full.length <= 1000;
+  var fits = full.length <= 1000;
   var res;
   try {
-    res = tgVideo_(chat, reelBlob_(row), short ? full : head, short ? keyboard : null);
+    res = tgVideo_(chat, reelBlob_(row), fits ? full : head, fits ? keyboard : null);
   } catch (e) {
     rcell_(row, RC.NOTES).setValue(e.message);
     notify_('❌ ريل رقم ' + rtext_(row, RC.NUM) + ': ' + e.message);
@@ -104,7 +104,7 @@ function sendReelForApproval_(row) {
     notify_('❌ الريل ما اتبعتش على Telegram: ' + (res && res.description ? res.description : 'سبب غير معروف'));
     return;
   }
-  if (!short) res = tg_('sendMessage', { chat_id: chat, text: caption, reply_markup: keyboard });
+  if (!fits) res = tg_('sendMessage', { chat_id: chat, text: caption, reply_markup: keyboard });
   rcell_(row, RC.STATUS).setValue(RST.SENT);
   if (res && res.result) rcell_(row, RC.TGMSG).setValue(res.result.message_id);
 }
