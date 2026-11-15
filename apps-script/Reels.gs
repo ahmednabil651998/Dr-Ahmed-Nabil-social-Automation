@@ -8,6 +8,7 @@
 var REELS_SHEET = 'Reels';
 var REEL_SEND_HOUR = 20; // الساعة اللي بيتبعت فيها ريل النهارده للموافقة (8 بالليل بتوقيت القاهرة)
 var REEL_TAGS = '#ثانوية_عامة #كيمياء_تالتة_ثانوي #Dr_Ahmed_Nabil';
+var YT_ENABLED = false; // متوقف: القناة على حساب 998 والسكريبت شغال بحساب 999، والرفع من API مش متراجع بيتقفل Private (شوف docs/youtube-status.md)
 var YT_CHANNEL_TITLE = 'Dr Ahmed Nabil Chemistry'; // القناة اللي لازم يتنشر عليها
 var YT_CATEGORY = '27'; // Education
 var REEL_MAX_BYTES = 50 * 1024 * 1024; // حد Apps Script وحد إرسال الفيديو من بوت Telegram
@@ -190,7 +191,7 @@ function publishReel_(row) {
     }
   }
 
-  if (!rtext_(row, RC.YT)) {
+  if (YT_ENABLED && !rtext_(row, RC.YT)) {
     try {
       var ytId = uploadYtShort_(row, 'public');
       var ytLink = 'https://youtube.com/shorts/' + ytId;
