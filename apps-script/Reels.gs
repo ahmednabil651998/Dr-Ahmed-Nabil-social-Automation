@@ -1,18 +1,20 @@
 /**
- * ريلز صفحة د. أحمد نبيل - المرحلة 1: فيسبوك ريلز
- * الريل بيتبعت على Telegram للموافقة، وبعد "انشر" بيترفع على فيسبوك ريلز.
+ * ريلز صفحة د. أحمد نبيل - فيسبوك ريلز + يوتيوب Shorts
+ * الريل بيتبعت على Telegram للموافقة، وبعد "انشر" بيترفع على فيسبوك ريلز وبعده يوتيوب Shorts.
  * الملف ده بيستخدم نفس التوكنز والدوال المشتركة اللي في Code.gs (props_, tg_, notify_, GRAPH, PAGE_ID, TZ).
- * يوتيوب (المرحلة 2) لسه متضافش.
+ * يوتيوب محتاج خدمة "YouTube Data API v3" متفعلة في Apps Script (Services) باسم YouTube.
  */
 
 var REELS_SHEET = 'Reels';
 var REEL_SEND_HOUR = 20; // الساعة اللي بيتبعت فيها ريل النهارده للموافقة (8 بالليل بتوقيت القاهرة)
 var REEL_TAGS = '#ثانوية_عامة #كيمياء_تالتة_ثانوي #Dr_Ahmed_Nabil';
+var YT_CHANNEL_TITLE = 'Dr Ahmed Nabil Chemistry'; // القناة اللي لازم يتنشر عليها
+var YT_CATEGORY = '27'; // Education
 var REEL_MAX_BYTES = 50 * 1024 * 1024; // حد Apps Script وحد إرسال الفيديو من بوت Telegram
 
 // أعمدة تاب Reels
 var RC = { NUM: 1, DATE: 2, STATUS: 3, TITLE: 4, CAPTION: 5, TOPIC: 6, VIDEO: 7, FB: 8, YT: 9, NOTES: 10, TGMSG: 11 };
-var RST = { READY: 'جاهز', SENT: 'اتبعت للموافقة', APPROVED: 'تمت الموافقة', DONE: 'اتنشر', FAILED: 'فشل' };
+var RST = { READY: 'جاهز', SENT: 'اتبعت للموافقة', APPROVED: 'تمت الموافقة', DONE: 'اتنشر', FAILED: 'فشل جزئي' };
 var REEL_HEADERS = ['رقم', 'التاريخ', 'الحالة', 'العنوان', 'الكابشن', 'هاشتاج الموضوع', 'ID ملف الفيديو', 'رابط فيسبوك', 'رابط يوتيوب', 'ملاحظات', 'رسالة تيليجرام'];
 
 /* ---------- تجهيز التاب ---------- */
@@ -41,6 +43,24 @@ function reelCaption_(row) {
   if (topic && topic.charAt(0) !== '#') topic = '#' + topic;
   var tags = (topic ? topic + ' ' : '') + REEL_TAGS;
   return (caption ? caption + '\n\n' : '') + tags;
+}
+
+function reelTopicTag_(row) {
+  var topic = rtext_(row, RC.TOPIC).replace(/\s+/g, '_');
+  if (topic && topic.charAt(0) !== '#') topic = '#' + topic;
+  return topic;
+}
+
+// عنوان يوتيوب: العنوان + هاشتاج الموضوع + #shorts (يوتيوب بيقبل 100 حرف بالكتير)
+function ytTitle_(row) {
+  var title = rtext_(row, RC.TITLE) || 'Dr Ahmed Nabil';
+  var tail = ' ' + (reelTopicTag_(row) ? reelTopicTag_(row) + ' ' : '') + '#shorts';
+  if (title.length + tail.length > 100) title = title.substring(0, 100 - tail.length - 1) + '…';
+  return title + tail;
+}
+
+function ytDescription_(row) {
+  return reelCaption_(row) + ' #shorts';
 }
 
 function reelBlob_(row) {
@@ -122,6 +142,10 @@ function handleReelCallback_(data) {
   } else if (act === 'red') {
     props_().setProperty('REEL_EDIT_ROW', String(row));
     notify_('✏️ ابعتلي كابشن الريل الجديد كامل في رسالة واحدة. (الهاشتاجات بتتضاف لوحدها)');
+  } else if (act === 'rre') {
+    if (status !== RST.FAILED) { notify_('الريل ده مش محتاج إعادة (' + status + ').'); return; }
+    notify_('🔁 بعيد المحاولة على المنصة اللي فشلت بس...');
+    publishReel_(row);
   } else if (act === 'rsk') {
     var d = new Date(rtext_(row, RC.DATE) + 'T12:00:00Z');
     d.setUTCDate(d.getUTCDate() + 1);
@@ -150,19 +174,72 @@ function handleReelMessage_(text) {
 
 /* ---------- النشر على فيسبوك ريلز ---------- */
 
+// بينشر على كل منصة لسه ما اتنشرش عليها (لو المنصة ليها رابط في الشيت بيتخطاها، عشان الإعادة ما تكررش النشر)
 function publishReel_(row) {
-  try {
-    var id = uploadFbReel_(row, 'PUBLISHED');
-    var link = 'https://www.facebook.com/reel/' + id;
-    rcell_(row, RC.FB).setValue(link);
+  var failed = [];
+
+  if (!rtext_(row, RC.FB)) {
+    try {
+      var fbId = uploadFbReel_(row, 'PUBLISHED');
+      var fbLink = 'https://www.facebook.com/reel/' + fbId;
+      rcell_(row, RC.FB).setValue(fbLink);
+      notify_('✅ فيسبوك: الريل اترفع وبيتنشر (ممكن ياخد دقايق لحد ما يظهر).\n' + fbLink);
+    } catch (e) {
+      failed.push('فيسبوك: ' + e.message);
+      notify_('❌ فيسبوك: الريل فشل.\n' + e.message);
+    }
+  }
+
+  if (!rtext_(row, RC.YT)) {
+    try {
+      var ytId = uploadYtShort_(row, 'public');
+      var ytLink = 'https://youtube.com/shorts/' + ytId;
+      rcell_(row, RC.YT).setValue(ytLink);
+      notify_('✅ يوتيوب: الـ Short اترفع.\n' + ytLink);
+    } catch (e) {
+      failed.push('يوتيوب: ' + e.message);
+      notify_('❌ يوتيوب: الـ Short فشل.\n' + e.message);
+    }
+  }
+
+  if (failed.length) {
+    rcell_(row, RC.STATUS).setValue(RST.FAILED);
+    rcell_(row, RC.NOTES).setValue(failed.join('\n'));
+    tg_('sendMessage', { chat_id: props_().getProperty('CHAT_ID'),
+      text: 'لما تصلّح المشكلة دوس الزرار ده، وهيعيد المنصة اللي فشلت بس:',
+      reply_markup: JSON.stringify({ inline_keyboard: [[{ text: '🔁 أعد المحاولة', callback_data: 'rre:' + row }]] }) });
+  } else {
     rcell_(row, RC.STATUS).setValue(RST.DONE);
     rcell_(row, RC.NOTES).setValue('');
-    notify_('✅ فيسبوك: الريل اترفع وبيتنشر (ممكن ياخد دقايق لحد ما يظهر).\n' + link);
-  } catch (e) {
-    rcell_(row, RC.STATUS).setValue(RST.FAILED);
-    rcell_(row, RC.NOTES).setValue(e.message);
-    notify_('❌ فيسبوك: الريل فشل.\n' + e.message + '\nلما تصلّح المشكلة، رجّع الحالة في الشيت لـ "جاهز".');
   }
+}
+
+/* ---------- النشر على يوتيوب Shorts ---------- */
+
+// privacy = 'public' للنشر، أو 'private' للتجربة
+function uploadYtShort_(row, privacy) {
+  checkYtChannel_();
+  var blob = reelBlob_(row).setContentType('video/mp4');
+  var resource = {
+    snippet: { title: ytTitle_(row), description: ytDescription_(row), categoryId: YT_CATEGORY },
+    status: { privacyStatus: privacy, selfDeclaredMadeForKids: false }
+  };
+  var v = YouTube.Videos.insert(resource, 'snippet,status', blob);
+  if (!v || !v.id) throw new Error('يوتيوب ما رجّعش ID للفيديو');
+  if (privacy === 'public' && v.status && v.status.privacyStatus !== 'public') {
+    notify_('⚠️ يوتيوب رفع الفيديو بس خلاه ' + v.status.privacyStatus + ' مش Public. افتحه من YouTube Studio وخليه Public بإيدك.');
+  }
+  return v.id;
+}
+
+// بيتأكد إن السكريبت بيرفع على القناة الصح، مش قناة تانية على نفس الحساب
+function checkYtChannel_() {
+  var res = YouTube.Channels.list('snippet', { mine: true });
+  var items = (res && res.items) || [];
+  if (!items.length) throw new Error('الحساب ده مالوش قناة يوتيوب.');
+  var title = items[0].snippet.title;
+  if (title !== YT_CHANNEL_TITLE) throw new Error('السكريبت متربط بقناة "' + title + '" مش "' + YT_CHANNEL_TITLE + '".');
+  return title;
 }
 
 // الرفع على 3 خطوات حسب Reels Publishing API: start ← رفع الملف ← finish
@@ -223,6 +300,29 @@ function testReelDraft() {
   } catch (e) {
     ui.alert('التجربة فشلت ❌\n' + e.message);
   }
+}
+
+// بترفع أول ريل "جاهز" على يوتيوب كـ Private (محدش يشوفه) عشان نتأكد إن الربط شغال
+function testYtPrivate() {
+  var ui = SpreadsheetApp.getUi();
+  var row = nextReadyReel_('9999-12-31');
+  if (!row) { ui.alert('مفيش ريل حالته "جاهز" في تاب Reels.'); return; }
+  try {
+    var id = uploadYtShort_(row, 'private');
+    props_().setProperty('YT_TEST_VIDEO', id);
+    ui.alert('تجربة يوتيوب نجحت ✅\nالفيديو اترفع Private على قناة ' + YT_CHANNEL_TITLE + '.\nhttps://youtube.com/shorts/' + id);
+  } catch (e) {
+    ui.alert('تجربة يوتيوب فشلت ❌\n' + e.message);
+  }
+}
+
+// بتمسح فيديو التجربة من يوتيوب
+function deleteYtTestVideo() {
+  var id = props_().getProperty('YT_TEST_VIDEO');
+  if (!id) return 'مفيش فيديو تجربة متسجل';
+  YouTube.Videos.remove(id);
+  props_().deleteProperty('YT_TEST_VIDEO');
+  return 'اتمسح: ' + id;
 }
 
 /* ---------- Telegram ---------- */

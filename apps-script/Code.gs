@@ -29,6 +29,7 @@ function onOpen() {
     .addSubMenu(SpreadsheetApp.getUi().createMenu('الريلز')
       .addItem('تجهيز تاب Reels', 'setupReelsSheet')
       .addItem('تجربة آمنة: ارفع أول ريل كمسودة على فيسبوك', 'testReelDraft')
+      .addItem('تجربة آمنة: ارفع أول ريل Private على يوتيوب', 'testYtPrivate')
       .addItem('ابعت ريل دلوقتي للموافقة', 'sendReelNow'))
     .addToUi();
 }
