@@ -181,6 +181,7 @@ function pollTelegram() {
       try { handleUpdate_(u); } catch (e) { notify_('❌ حصل خطأ: ' + e.message); }
     });
     try { publishApproved_(); } catch (e) { notify_('❌ حصل خطأ في النشر: ' + e.message); }
+    try { publishApprovedReels_(); } catch (e) { notify_('❌ حصل خطأ في نشر الريل: ' + e.message); } // Reels.gs
   } finally { lock.releaseLock(); }
 }
 
