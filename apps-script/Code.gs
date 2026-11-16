@@ -180,7 +180,16 @@ function pollTelegram() {
       p.setProperty('UPDATE_OFFSET', String(u.update_id + 1));
       try { handleUpdate_(u); } catch (e) { notify_('❌ حصل خطأ: ' + e.message); }
     });
+    try { publishApproved_(); } catch (e) { notify_('❌ حصل خطأ في النشر: ' + e.message); }
   } finally { lock.releaseLock(); }
+}
+
+// الموافقة من Claude: Claude بيغيّر حالة البوست في الشيت لـ "تمت الموافقة"، وهنا بننشره خلال دقيقة.
+function publishApproved_() {
+  var s = sheet_(), last = s.getLastRow();
+  for (var r = 2; r <= last; r++) {
+    if (cellText_(r, C.STATUS) === ST.APPROVED && !cellText_(r, C.FBID)) publish_(r);
+  }
 }
 
 function handleUpdate_(u) {
