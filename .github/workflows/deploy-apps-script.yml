@@ -1,0 +1,46 @@
+# بيرفع كود apps-script/ على مشروع Apps Script الحقيقي.
+# بيشتغل يدوي بس (Actions ← Deploy Apps Script ← Run workflow)، عشان مفيش حاجة تتغير في السيستم الشغال من غير ما تقرر.
+# محتاج Secret اسمه CLASPRC_JSON (محتوى ملف ~/.clasprc.json بعد clasp login). الخطوات في docs/deploy.md
+name: Deploy Apps Script
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'اكتب deploy للتأكيد'
+        required: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.confirm == 'deploy' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Check syntax (كل ملف .gs لازم يكون JavaScript سليم)
+        run: |
+          for f in apps-script/*.gs; do cp "$f" /tmp/check.js; node --check /tmp/check.js || { echo "Syntax error in $f"; exit 1; }; done
+
+      - name: Check manifest
+        run: |
+          test -f apps-script/appsscript.json || { echo "apps-script/appsscript.json ناقص. شوف docs/deploy.md"; exit 1; }
+
+      - name: Install clasp
+        run: npm install -g @google/clasp@2
+
+      - name: Login
+        env:
+          CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
+        run: |
+          test -n "$CLASPRC_JSON" || { echo "Secret CLASPRC_JSON مش موجود"; exit 1; }
+          echo "$CLASPRC_JSON" > ~/.clasprc.json
+
+      - name: Push
+        run: clasp push --force
+
+      - name: Done
+        run: echo "الكود اترفع. افتح Apps Script واتأكد، وشغّل healthCheckNow من قايمة الشيت."

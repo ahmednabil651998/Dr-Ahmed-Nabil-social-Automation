@@ -8,11 +8,11 @@ var PAGE_ID = '103991896132654';
 var APP_ID = '1156816820230277';
 var GRAPH = 'https://graph.facebook.com/v25.0/';
 var TZ = 'Africa/Cairo';
-var SEND_HOUR = 17; // الساعة اللي بيتبعت فيها بوست النهارده للموافقة (بتوقيت القاهرة)
+var SEND_HOUR = 17; // القيمة الافتراضية. الساعة الفعلية من تاب Settings (SEND_HOUR) لو موجود
 var HASHTAGS = '#Dr_Ahmed_Nabil ❤️\n#ويبقي_الاثر ✨';
 
 // أعمدة الجدول
-var C = { NUM: 1, DATE: 2, STATUS: 3, HOOK: 4, CAPTION: 5, IMG: 6, NOTES: 7, TGMSG: 8, FBID: 9 };
+var C = { NUM: 1, DATE: 2, STATUS: 3, HOOK: 4, CAPTION: 5, IMG: 6, NOTES: 7, TGMSG: 8, FBID: 9, IG: 10, TYPE: 11 };
 var ST = { READY: 'جاهز', SENT: 'اتبعت للموافقة', APPROVED: 'تمت الموافقة', DONE: 'اتنشر' };
 
 /* ---------- قايمة الإعداد في الجدول ---------- */
@@ -30,6 +30,18 @@ function onOpen() {
       .addItem('تجهيز تاب Reels', 'setupReelsSheet')
       .addItem('تجربة آمنة: ارفع أول ريل كمسودة على فيسبوك', 'testReelDraft')
       .addItem('ابعت ريل دلوقتي للموافقة', 'sendReelNow'))
+    .addSubMenu(SpreadsheetApp.getUi().createMenu('الإضافات')
+      .addItem('تجهيز الإضافات (مرة واحدة)', 'setupExtras')
+      .addItem('فحص شامل للسيستم', 'healthCheckNow')
+      .addItem('ربط إنستجرام (تجربة من غير نشر)', 'connectInstagram')
+      .addItem('تحديث الأرقام دلوقتي', 'analyticsNow')
+      .addItem('ابعت التقرير الأسبوعي دلوقتي', 'weeklyReportNow')
+      .addSeparator()
+      .addItem('رابط الداش بورد', 'dashboardLink')
+      .addItem('تفعيل Webhook (Cloudflare)', 'enableWebhook')
+      .addItem('إلغاء Webhook', 'disableWebhook')
+      .addSeparator()
+      .addItem('إضافة عضو للفريق', 'addTeamMember'))
     .addToUi();
 }
 
@@ -121,7 +133,8 @@ function ensureHashtags_(caption) {
 function dailyJob() {
   var now = new Date();
   try { reelsDailyJob_(now); } catch (e) { notify_('❌ خطأ في الريلز: ' + e.message); } // Reels.gs
-  if (Number(Utilities.formatDate(now, TZ, 'H')) !== SEND_HOUR) return;
+  try { extrasHourly_(now); } catch (e) { notify_('❌ خطأ في الإضافات: ' + e.message); } // Settings.gs
+  if (Number(Utilities.formatDate(now, TZ, 'H')) !== num_('SEND_HOUR')) return;
   var today = cairoDate_(now);
   if (props_().getProperty('LAST_SENT_DATE') === today) return;
   var ok = sendNext_(today);
@@ -144,8 +157,10 @@ function sendNext_(today) {
     return false;
   }
   sendForApproval_(row);
-  if (ready - 1 <= 2) {
-    tg_('sendMessage', { chat_id: props_().getProperty('CHAT_ID'), text: '📌 فاضل ' + (ready - 1) + ' بوستات جاهزة بعد ده. وقت دفعة جديدة قرّب.' });
+  if (ready - 1 <= num_('LOW_READY_ALERT')) {
+    var low = { chat_id: props_().getProperty('CHAT_ID'), text: '📌 فاضل ' + (ready - 1) + ' بوستات جاهزة بعد ده. وقت دفعة جديدة قرّب.' };
+    if (on_('AI_ENABLED')) low.reply_markup = JSON.stringify({ inline_keyboard: [[{ text: '💡 اقترح 5 أفكار', callback_data: 'aid:5' }]] });
+    tg_('sendMessage', low);
   }
   return true;
 }
@@ -173,15 +188,21 @@ function pollTelegram() {
   var lock = LockService.getScriptLock();
   if (!lock.tryLock(20000)) return;
   try {
-    var p = props_(), offset = Number(p.getProperty('UPDATE_OFFSET') || 0);
-    // الـ offset لازم يتبعت كنص صريح في الرابط، وإلا تليجرام بيتجاهله ويرجّع نفس الرسايل كل دقيقة
-    var res = tg_('getUpdates?offset=' + String(offset) + '&timeout=0', { allowed_updates: JSON.stringify(['message', 'callback_query']) });
-    (res.result || []).forEach(function (u) {
-      p.setProperty('UPDATE_OFFSET', String(u.update_id + 1));
-      try { handleUpdate_(u); } catch (e) { notify_('❌ حصل خطأ: ' + e.message); }
-    });
+    var p = props_();
+    p.setProperty('LAST_POLL_AT', String(new Date().getTime()));
+    // في وضع webhook تيليجرام بيبعت لوحده على doPost (Web.gs)، فمانسألوش هنا (الاتنين مع بعض مش بيشتغلوا)
+    if (setting_('TG_MODE') !== 'webhook') {
+      var offset = Number(p.getProperty('UPDATE_OFFSET') || 0);
+      // الـ offset لازم يتبعت كنص صريح في الرابط، وإلا تليجرام بيتجاهله ويرجّع نفس الرسايل كل دقيقة
+      var res = tg_('getUpdates?offset=' + String(offset) + '&timeout=0', { allowed_updates: JSON.stringify(['message', 'callback_query']) });
+      (res.result || []).forEach(function (u) {
+        p.setProperty('UPDATE_OFFSET', String(u.update_id + 1));
+        try { handleUpdate_(u); } catch (e) { notify_('❌ حصل خطأ: ' + e.message); }
+      });
+    }
     try { publishApproved_(); } catch (e) { notify_('❌ حصل خطأ في النشر: ' + e.message); }
     try { publishApprovedReels_(); } catch (e) { notify_('❌ حصل خطأ في نشر الريل: ' + e.message); } // Reels.gs
+    try { igFinishPending_(); } catch (e) { notify_('❌ حصل خطأ في إنستجرام: ' + e.message); } // Instagram.gs
   } finally { lock.releaseLock(); }
 }
 
@@ -200,6 +221,9 @@ function handleUpdate_(u) {
     if (String(cq.from.id) !== chat) return;
     tg_('answerCallbackQuery', { callback_query_id: cq.id });
     if (cq.data.charAt(0) === 'r') { handleReelCallback_(cq.data); return; } // زراير الريلز (Reels.gs)
+    if (cq.data.indexOf('cm') === 0) { handleCommentCallback_(cq.data); return; } // زراير الكومنتات (Comments.gs)
+    if (cq.data.indexOf('aid:') === 0) { notify_('💡 بفكر...'); aiSuggestIdeas_(Number(cq.data.split(':')[1]) || 5); return; } // AI.gs
+    if (cq.data.indexOf('igr:') === 0) { retryIgPost_(Number(cq.data.split(':')[1])); return; }
     var parts = cq.data.split(':'), act = parts[0], row = Number(parts[1]);
     var status = cellText_(row, C.STATUS);
     if (act === 'ok') {
@@ -221,6 +245,23 @@ function handleUpdate_(u) {
   var m = u.message;
   if (!m || String(m.chat.id) !== chat) return;
   var text = m.text || '';
+  // فويس أو فيديو على البوت (AI.gs)
+  if (m.voice || m.audio || m.video || (m.document && /^video\//.test(m.document.mime_type || ''))) {
+    if (!on_('AI_ENABLED')) { notify_('الميزة دي محتاجة AI_ENABLED = true في تاب Settings.'); return; }
+    if (m.voice || m.audio) { notify_('🎙 وصل الفويس، بكتب البوست...'); var au = m.voice || m.audio; ideaToPost_(tgDownload_(au.file_id), null, au.mime_type || 'audio/ogg'); }
+    else videoToReel_(m);
+    return;
+  }
+  if (handleCommentMessage_(text)) return; // رد مكتوب على كومنت (Comments.gs)
+  if (text.indexOf('/idea') === 0) {
+    var idea = text.substring(5).trim();
+    if (!on_('AI_ENABLED')) notify_('الميزة دي محتاجة AI_ENABLED = true في تاب Settings.');
+    else if (!idea) notify_('اكتب الفكرة بعد /idea في نفس الرسالة.');
+    else ideaToPost_(null, idea);
+    return;
+  }
+  if (text === '/health') { notify_(runHealth_(true).text); return; }
+  if (text === '/report') { weeklyReport_(); return; }
   if (handleReelMessage_(text)) return; // رسايل الريلز (Reels.gs)
   var editRow = Number(props_().getProperty('EDIT_ROW') || 0);
   if (editRow && text && text.charAt(0) !== '/') {
@@ -231,7 +272,9 @@ function handleUpdate_(u) {
   } else if (text === '/post') {
     sendNext_(cairoDate_());
   } else if (text === '/start' || text === '/help') {
-    notify_('أنا بعتلك بوست النهارده كل يوم الساعة 5 العصر، وريل النهارده الساعة 8 بالليل للموافقة.\n/post = ابعتلي بوست دلوقتي\n/reel = ابعتلي ريل دلوقتي');
+    notify_('أنا بعتلك بوست النهارده كل يوم الساعة ' + num_('SEND_HOUR') + '، وريل النهارده الساعة ' + num_('REEL_SEND_HOUR') + ' للموافقة.\n' +
+      '/post = ابعتلي بوست دلوقتي\n/reel = ابعتلي ريل دلوقتي\n/idea فكرتك = اكتبلي بوست منها\n/health = فحص السيستم\n/report = تقرير الأرقام\n' +
+      'ابعت فويس ← بوست جديد، وابعت فيديو ← ريل جديد (لو الذكاء الاصطناعي متفعّل)');
   }
 }
 
@@ -256,6 +299,20 @@ function publish_(row) {
   cell_(row, C.STATUS).setValue(ST.DONE);
   cell_(row, C.FBID).setValue(postId);
   notify_('✅ اتنشر على الصفحة.\nhttps://www.facebook.com/' + postId);
+  if (on_('IG_ENABLED') && !cellText_(row, C.IG)) retryIgPost_(row); // Instagram.gs
+}
+
+// إنستجرام بعد فيسبوك. لو فشل، فيسبوك بيفضل منشور ويتبعتلك زرار يعيد إنستجرام بس.
+function retryIgPost_(row) {
+  if (cellText_(row, C.IG)) { notify_('البوست ده اتنشر على إنستجرام قبل كده.'); return; }
+  try {
+    var link = igPublishPhoto_(row);
+    cell_(row, C.IG).setValue(link);
+    notify_('✅ إنستجرام: اتنشر.\n' + link);
+  } catch (e) {
+    tg_('sendMessage', { chat_id: props_().getProperty('CHAT_ID'), text: '❌ إنستجرام: البوست فشل.\n' + e.message,
+      reply_markup: JSON.stringify({ inline_keyboard: [[{ text: '🔁 أعد إنستجرام بس', callback_data: 'igr:' + row }]] }) });
+  }
 }
 
 /* ---------- شيل البيانات المخفية من الصورة ----------
