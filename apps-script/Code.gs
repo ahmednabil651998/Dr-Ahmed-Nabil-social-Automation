@@ -229,7 +229,7 @@ function handleUpdate_(u) {
 
 function publish_(row) {
   var token = props_().getProperty('FB_PAGE_TOKEN');
-  var blob = DriveApp.getFileById(cellText_(row, C.IMG)).getBlob();
+  var blob = stripImageMeta_(DriveApp.getFileById(cellText_(row, C.IMG)).getBlob());
   var caption = ensureHashtags_(cellText_(row, C.CAPTION));
   var resp = UrlFetchApp.fetch(GRAPH + PAGE_ID + '/photos', {
     method: 'post',
@@ -246,6 +246,51 @@ function publish_(row) {
   cell_(row, C.STATUS).setValue(ST.DONE);
   cell_(row, C.FBID).setValue(postId);
   notify_('✅ اتنشر على الصفحة.\nhttps://www.facebook.com/' + postId);
+}
+
+/* ---------- شيل البيانات المخفية من الصورة ----------
+ * ChatGPT بيحط جوه الصورة بيانات (C2PA / XMP / EXIF) بتقول إنها معمولة بالذكاء الاصطناعي،
+ * وفيسبوك بيقراها ويحط علامة "محتوى ذكاء اصطناعي". هنا بنشيل البيانات دي بس، والصورة نفسها ما بتتغيرش.
+ */
+function stripImageMeta_(blob) {
+  try {
+    var b = blob.getBytes(), name = blob.getName();
+    var u = function (i) { return b[i] & 0xFF; };
+    var out = null, mime = null;
+    // PNG: نسيب بس الأجزاء اللي بترسم الصورة، ونشيل أي نصوص أو بيانات (caBX/tEXt/iTXt/zTXt/eXIf ...)
+    if (u(0) === 0x89 && u(1) === 0x50 && u(2) === 0x4E && u(3) === 0x47) {
+      var keep = { IHDR: 1, PLTE: 1, IDAT: 1, IEND: 1, tRNS: 1, gAMA: 1, cHRM: 1, sRGB: 1, iCCP: 1, sBIT: 1, pHYs: 1, bKGD: 1 };
+      out = b.slice(0, 8);
+      var p = 8;
+      while (p + 12 <= b.length) {
+        var len = ((u(p) << 24) | (u(p + 1) << 16) | (u(p + 2) << 8) | u(p + 3)) >>> 0;
+        var type = String.fromCharCode(u(p + 4), u(p + 5), u(p + 6), u(p + 7));
+        var end = p + 12 + len;
+        if (end > b.length) return blob; // ملف غريب: نسيبه زي ما هو
+        if (keep[type]) out = out.concat(b.slice(p, end));
+        p = end;
+        if (type === 'IEND') break;
+      }
+      mime = 'image/png';
+    // JPEG: نشيل APP1 (EXIF/XMP) و APP11 (C2PA) و APP13 والتعليقات، ونسيب الباقي
+    } else if (u(0) === 0xFF && u(1) === 0xD8) {
+      out = b.slice(0, 2);
+      var q = 2;
+      while (q + 4 <= b.length && u(q) === 0xFF) {
+        var m = u(q + 1);
+        if (m === 0xDA) { out = out.concat(b.slice(q)); break; } // من هنا بيانات الصورة نفسها
+        var seg = (u(q + 2) << 8) | u(q + 3);
+        var drop = (m === 0xE1 || m === 0xEB || m === 0xED || m === 0xFE);
+        if (!drop) out = out.concat(b.slice(q, q + 2 + seg));
+        q += 2 + seg;
+      }
+      mime = 'image/jpeg';
+    }
+    if (!out) return blob;
+    return Utilities.newBlob(out, mime, name);
+  } catch (e) {
+    return blob; // لو حصل أي خطأ ننشر الصورة الأصلية بدل ما النشر يقف
+  }
 }
 
 /* ---------- Telegram ---------- */
