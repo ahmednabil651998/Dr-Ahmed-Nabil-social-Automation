@@ -1,19 +1,30 @@
 # يوتيوب Shorts — الوضع الحالي (2026-11-16)
 
-> الحالة: **متوقف** (`YT_ENABLED = false` في `apps-script/Reels.gs`). بس تجربة 2026-11-16 أثبتت إن **قفل Private مش بيحصل**، فالمانع الوحيد دلوقتي هو إن القناة على حساب 998 (المشكلة 1 تحت). الخطوة الجاية: OAuth لحساب 998.
+> الحالة: **شغال** (`YT_ENABLED = true`). لما د. أحمد يدوس "انشر" على Telegram، الريل بيتنشر على فيسبوك وبعدين يوتيوب Shorts **Public** على قناة `Dr Ahmed Nabil - Chemistry` (حساب 998).
+
+## إزاي الرفع شغال (من 2026-11-16)
+- مشروع Google Cloud اسمه **`drahmed-youtube`** على حساب **ahmednabil651999**، فيه YouTube Data API v3 متفعّل، وشاشة الموافقة (اسم الأب `Dr Ahmed Nabil Reels`) **In production** — مهم: في وضع Testing الـ Refresh token بيبوظ كل 7 أيام.
+- OAuth Client من نوع Web application، والـ redirect هو `https://developers.google.com/oauthplayground`.
+- د. أحمد وافق مرة واحدة بحساب **998** من OAuth Playground (scope: `https://www.googleapis.com/auth/youtube`)، والـ Refresh token اتحفظ.
+- في Script Properties: `YT_CLIENT_ID` و `YT_CLIENT_SECRET` و `YT_REFRESH_TOKEN` (مش في الريبو).
+- `Reels.gs`: `ytToken_` بتجيب توكن ساعة من الـ Refresh token، و`uploadYtShort_` بترفع resumable بـ `UrlFetchApp` (مابقيناش نستخدم خدمة YouTube المدمجة اللي بترفع على حساب 999)، و`checkYtChannel_` بتتأكد من القناة (بتقارن الحروف والأرقام بس عشان الشَرطة والمسافات)، و`ytWhoAmI` للتأكد من الربط.
+- تجربة: ريل Private اترفع على القناة الأساسية (`QBpO6rfLH0E`) بالعنوان والوصف صح، واتمسح بـ `deleteYtTestVideo`.
+
+## لو الرفع وقف
+- "توكن يوتيوب: invalid_grant" ← الـ Refresh token اتلغى (مثلًا تغيير باسورد 998 أو سحب الصلاحية). اعمل موافقة جديدة من OAuth Playground بحساب 998 وحدّث `YT_REFRESH_TOKEN`.
+- "السكريبت متربط بقناة …" ← التوكن تبع قناة تانية. شغّل `ytWhoAmI` وشوف.
+- الـ Client secret موجود في ملف JSON عند د. أحمد. لو اتسرّب: اعمل secret جديد من Google Cloud ← Clients.
 
 ## تجربة القفل (2026-11-16) — النتيجة: مفيش قفل ✅
 - اتعملت قناة تجربة على حساب **ahmednabil651999** (اسمها `Ahmed Nabil`، ID `UC1QyXJwWsUj2rLB06g5DBYA`).
 - ملف مؤقت في Apps Script (دالة `testYtLock`) رفع أول ريل "جاهز" بـ `YouTube.Videos.insert` بحالة **unlisted**، من غير `checkYtChannel_`.
 - يوتيوب رجّع `privacyStatus: unlisted`، والفيديو `ewyeMAA8YlI` (`test - delete`) اشتغل من Incognito، وبعد ~17 ساعة لسه **Unlisted** في Studio من غير قفل.
 - يعني الرفع من مشروع Apps Script الافتراضي (غير متراجع) **مش بيتقفل Private** دلوقتي. القفل بيتحدد على مستوى المشروع مش القناة، فالنتيجة تنطبق على القناة الأساسية لما نرفع بنفس الطريقة. (مصدر على النت قال إن يوتيوب بطّل القفل ده، رغم إن صفحة المساعدة الرسمية لسه بتذكره.)
-- **لسه متساب:** فيديو التجربة على قناة 999 والملف المؤقت (`Untitled 2.gs`) — يتمسحوا.
+- الملف المؤقت اتمسح. فيديو التجربة `ewyeMAA8YlI` لسه على قناة 999 (Unlisted) — يتمسح يدويًا من Studio.
 
 ## الخطوة الجاية
-1. مشروع Google Cloud بمفتاح OAuth، ود. أحمد يوافق مرة واحدة بحساب 998 (Incognito + حساب واحد).
-2. تعديل `Reels.gs` يرفع بالتوكن ده (يتعرض على د. أحمد قبل التنفيذ)، وبعدين `YT_ENABLED = true`.
-3. تجربة على ريل حقيقي: "انشر" مرة واحدة ← فيسبوك + يوتيوب.
-4. النص-أوتوماتيك (تحت) بقى خطة احتياطية بس لو القفل رجع.
+- أول ريل حقيقي: "انشر" مرة واحدة ← فيسبوك + يوتيوب، ونتأكد إن الـ Short طلع Public.
+- بعدها: تيك توك (المرحلة 3).
 
 ## اللي اتعمل
 - كود النشر على يوتيوب اتكتب في `Reels.gs`: `uploadYtShort_`، `checkYtChannel_` (بيتأكد إن القناة هي `Dr Ahmed Nabil Chemistry`)، `ytTitle_` (العنوان + هاشتاج الموضوع + `#shorts`، أقصاه 100 حرف)، `ytDescription_`.

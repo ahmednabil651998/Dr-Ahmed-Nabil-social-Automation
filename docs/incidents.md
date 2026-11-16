@@ -58,3 +58,11 @@
 - الفيديو `ewyeMAA8YlI` فضل Unlisted وشغال من Incognito بعد ~17 ساعة → الرفع من Apps Script مش بيتقفل Private.
 - ملاحظات اللصق من الموبايل في محرر Apps Script: الملف الجديد بيبقى فيه `myFunction` لازم يتمسح الأول، وآخر `}` ساعات ما بيتلصقش (`Unexpected end of input`)، وأي ملف فيه syntax error بيمنع حفظ المشروع كله.
 - لسه: مسح فيديو التجربة والملف المؤقت `Untitled 2.gs`. التفاصيل والخطوة الجاية في `docs/youtube-status.md`.
+
+## 2026-11-16 — يوتيوب: الرفع على القناة الأساسية بتوكن 998 + التفعيل
+
+- اتعمل مشروع Google Cloud `drahmed-youtube` (حساب 999) + OAuth client، والأب اتنشر In production عشان الـ Refresh token مايبوظش بعد 7 أيام. شاشة الموافقة طلبت لينك سياسة الخصوصية (نفس Google Doc بتاع Meta) والدومينات `drahmednabil.com` و `google.com`.
+- د. أحمد وافق بحساب 998 من OAuth Playground، والقيم التلاتة اتحطت في Script Properties.
+- `Reels.gs` اتغيّر يرفع بالتوكن ده بدل خدمة YouTube المدمجة. اسم القناة الحقيقي `Dr Ahmed Nabil - Chemistry` (مش `Dr Ahmed Nabil Chemistry`)، والمقارنة بقت تتجاهل المسافات والرموز.
+- تجربة Private نجحت واتمسحت، و`YT_ENABLED = true`. الملف المؤقت اتمسح؛ المشروع فيه `Code.gs` و`Reels.gs` بس.
+- ملحوظة: `setupReelsSheet` اتشغلت بالغلط من المحرر مرة (وقفت عند `getUi`)، وهي بتعيد كتابة نفس العناوين والتنسيق بس، فمفيش ضرر.
