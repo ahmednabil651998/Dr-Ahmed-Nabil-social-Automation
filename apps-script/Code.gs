@@ -294,6 +294,27 @@ function stripImageMeta_(blob) {
         q += 2 + seg;
       }
       mime = 'image/jpeg';
+    // WebP (صور ChatGPT بتطلع WebP حتى لو اسمها .png): نشيل C2PA و EXIF و XMP
+    } else if (u(0) === 0x52 && u(1) === 0x49 && u(2) === 0x46 && u(3) === 0x46 && u(8) === 0x57 && u(9) === 0x45 && u(10) === 0x42 && u(11) === 0x50) {
+      var keepW = { 'VP8 ': 1, 'VP8L': 1, 'VP8X': 1, 'ALPH': 1, 'ANIM': 1, 'ANMF': 1, 'ICCP': 1 };
+      var body = [], w = 12;
+      while (w + 8 <= b.length) {
+        var wt = String.fromCharCode(u(w), u(w + 1), u(w + 2), u(w + 3));
+        var wl = (u(w + 4) | (u(w + 5) << 8) | (u(w + 6) << 16) | (u(w + 7) << 24)) >>> 0;
+        var wend = w + 8 + wl + (wl % 2);
+        if (w + 8 + wl > b.length) return blob; // ملف غريب: نسيبه زي ما هو
+        if (keepW[wt]) {
+          var part = b.slice(w, Math.min(wend, b.length));
+          if (wt === 'VP8X') part[8] = part[8] & ~0x0C; // نشيل علامة وجود EXIF و XMP
+          body = body.concat(part);
+        }
+        w = wend;
+      }
+      var size = body.length + 4;
+      var sz = [size & 0xFF, (size >> 8) & 0xFF, (size >> 16) & 0xFF, (size >>> 24) & 0xFF];
+      for (var k = 0; k < 4; k++) if (sz[k] > 127) sz[k] -= 256;
+      out = [82, 73, 70, 70].concat(sz, [87, 69, 66, 80], body);
+      mime = 'image/webp';
     }
     if (!out) return blob;
     return Utilities.newBlob(out, mime, name);
