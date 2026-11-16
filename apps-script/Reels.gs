@@ -2,14 +2,15 @@
  * ريلز صفحة د. أحمد نبيل - فيسبوك ريلز + يوتيوب Shorts
  * الريل بيتبعت على Telegram للموافقة، وبعد "انشر" بيترفع على فيسبوك ريلز وبعده يوتيوب Shorts.
  * الملف ده بيستخدم نفس التوكنز والدوال المشتركة اللي في Code.gs (props_, tg_, notify_, GRAPH, PAGE_ID, TZ).
- * يوتيوب محتاج خدمة "YouTube Data API v3" متفعلة في Apps Script (Services) باسم YouTube.
+ * يوتيوب بيترفع بتوكن حساب 998 (صاحب القناة) عن طريق مشروع Google Cloud "drahmed-youtube" على حساب 999.
+ * محتاج في Script Properties: YT_CLIENT_ID و YT_CLIENT_SECRET و YT_REFRESH_TOKEN (شوف docs/youtube-status.md).
  */
 
 var REELS_SHEET = 'Reels';
 var REEL_SEND_HOUR = 20; // الساعة اللي بيتبعت فيها ريل النهارده للموافقة (8 بالليل بتوقيت القاهرة)
 var REEL_TAGS = '#ثانوية_عامة #كيمياء_تالتة_ثانوي #Dr_Ahmed_Nabil';
-var YT_ENABLED = false; // متوقف: القناة على حساب 998 والسكريبت شغال بحساب 999، والرفع من API مش متراجع بيتقفل Private (شوف docs/youtube-status.md)
-var YT_CHANNEL_TITLE = 'Dr Ahmed Nabil Chemistry'; // القناة اللي لازم يتنشر عليها
+var YT_ENABLED = true; // شغال: الرفع بتوكن 998 اتجرب ونجح 2026-11-16 (شوف docs/youtube-status.md)
+var YT_CHANNEL_TITLE = 'Dr Ahmed Nabil - Chemistry'; // القناة اللي لازم يتنشر عليها
 var YT_CATEGORY = '27'; // Education
 var REEL_MAX_BYTES = 50 * 1024 * 1024; // حد Apps Script وحد إرسال الفيديو من بوت Telegram
 
@@ -218,29 +219,71 @@ function publishReel_(row) {
 /* ---------- النشر على يوتيوب Shorts ---------- */
 
 // privacy = 'public' للنشر، أو 'private' للتجربة
+// الرفع على خطوتين (resumable): بنبعت البيانات ← يوتيوب يرجّع رابط ← نرفع الفيديو عليه
 function uploadYtShort_(row, privacy) {
-  checkYtChannel_();
+  var token = ytToken_();
+  checkYtChannel_(token);
   var blob = reelBlob_(row).setContentType('video/mp4');
   var resource = {
     snippet: { title: ytTitle_(row), description: ytDescription_(row), categoryId: YT_CATEGORY },
     status: { privacyStatus: privacy, selfDeclaredMadeForKids: false }
   };
-  var v = YouTube.Videos.insert(resource, 'snippet,status', blob);
-  if (!v || !v.id) throw new Error('يوتيوب ما رجّعش ID للفيديو');
+  var init = UrlFetchApp.fetch('https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&part=snippet,status', {
+    method: 'post', contentType: 'application/json; charset=UTF-8', payload: JSON.stringify(resource),
+    headers: { Authorization: 'Bearer ' + token, 'X-Upload-Content-Type': 'video/mp4' }, muteHttpExceptions: true
+  });
+  if (init.getResponseCode() !== 200) throw new Error('يوتيوب (بداية الرفع): ' + init.getContentText());
+  var h = init.getHeaders();
+  var url = h['Location'] || h['location'];
+  if (!url) throw new Error('يوتيوب ما رجّعش رابط الرفع');
+  var up = UrlFetchApp.fetch(url, {
+    method: 'put', contentType: 'video/mp4', payload: blob.getBytes(),
+    headers: { Authorization: 'Bearer ' + token }, muteHttpExceptions: true
+  });
+  var v = JSON.parse(up.getContentText());
+  if (!v || !v.id) throw new Error('يوتيوب (رفع الفيديو): ' + up.getContentText());
   if (privacy === 'public' && v.status && v.status.privacyStatus !== 'public') {
     notify_('⚠️ يوتيوب رفع الفيديو بس خلاه ' + v.status.privacyStatus + ' مش Public. افتحه من YouTube Studio وخليه Public بإيدك.');
   }
   return v.id;
 }
 
-// بيتأكد إن السكريبت بيرفع على القناة الصح، مش قناة تانية على نفس الحساب
-function checkYtChannel_() {
-  var res = YouTube.Channels.list('snippet', { mine: true });
-  var items = (res && res.items) || [];
+// توكن مؤقت (ساعة) لحساب 998 من الـ Refresh token المتخزن في Script Properties
+function ytToken_() {
+  var p = props_();
+  var r = UrlFetchApp.fetch('https://oauth2.googleapis.com/token', {
+    method: 'post', muteHttpExceptions: true,
+    payload: { client_id: p.getProperty('YT_CLIENT_ID'), client_secret: p.getProperty('YT_CLIENT_SECRET'),
+               refresh_token: p.getProperty('YT_REFRESH_TOKEN'), grant_type: 'refresh_token' }
+  });
+  var j = JSON.parse(r.getContentText());
+  if (!j.access_token) throw new Error('توكن يوتيوب: ' + (j.error_description || j.error || r.getResponseCode()));
+  return j.access_token;
+}
+
+function ytGet_(path, token) {
+  var r = UrlFetchApp.fetch('https://www.googleapis.com/youtube/v3/' + path, {
+    headers: { Authorization: 'Bearer ' + token }, muteHttpExceptions: true
+  });
+  if (r.getResponseCode() !== 200) throw new Error('يوتيوب: ' + r.getContentText());
+  return JSON.parse(r.getContentText());
+}
+
+// بيتأكد إن التوكن تبع القناة الصح، مش قناة تانية
+function checkYtChannel_(token) {
+  var items = ytGet_('channels?part=snippet&mine=true', token || ytToken_()).items || [];
   if (!items.length) throw new Error('الحساب ده مالوش قناة يوتيوب.');
   var title = items[0].snippet.title;
-  if (title !== YT_CHANNEL_TITLE) throw new Error('السكريبت متربط بقناة "' + title + '" مش "' + YT_CHANNEL_TITLE + '".');
+  // بنقارن الحروف والأرقام بس، عشان المسافات والشرَط في اسم القناة ما تفرقش
+  var norm = function (x) { return String(x).replace(/[^A-Za-z0-9]/g, '').toLowerCase(); };
+  if (norm(title) !== norm(YT_CHANNEL_TITLE)) throw new Error('السكريبت متربط بقناة "' + title + '" مش "' + YT_CHANNEL_TITLE + '".');
   return title;
+}
+
+// تتشغل من المحرر بعد إضافة الـ Script Properties: بتطبع القناة اللي التوكن تبعها
+function ytWhoAmI() {
+  var items = ytGet_('channels?part=snippet&mine=true', ytToken_()).items || [];
+  Logger.log(items.length ? ('القناة: ' + items[0].snippet.title + ' | ' + items[0].id) : 'التوكن ده مالوش قناة');
 }
 
 // الرفع على 3 خطوات حسب Reels Publishing API: start ← رفع الملف ← finish
@@ -321,7 +364,10 @@ function testYtPrivate() {
 function deleteYtTestVideo() {
   var id = props_().getProperty('YT_TEST_VIDEO');
   if (!id) return 'مفيش فيديو تجربة متسجل';
-  YouTube.Videos.remove(id);
+  var r = UrlFetchApp.fetch('https://www.googleapis.com/youtube/v3/videos?id=' + id, {
+    method: 'delete', headers: { Authorization: 'Bearer ' + ytToken_() }, muteHttpExceptions: true
+  });
+  if (r.getResponseCode() !== 204) throw new Error('يوتيوب (مسح): ' + r.getContentText());
   props_().deleteProperty('YT_TEST_VIDEO');
   return 'اتمسح: ' + id;
 }
