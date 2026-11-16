@@ -7,7 +7,7 @@
  */
 
 var REELS_SHEET = 'Reels';
-var REEL_SEND_HOUR = 20; // الساعة اللي بيتبعت فيها ريل النهارده للموافقة (8 بالليل بتوقيت القاهرة)
+var REEL_SEND_HOUR = 19; // الساعة اللي بيتبعت فيها ريل النهارده للموافقة (7 بالليل بتوقيت القاهرة)
 var REEL_TAGS = '#ثانوية_عامة #كيمياء_تالتة_ثانوي #Dr_Ahmed_Nabil';
 var YT_ENABLED = true; // شغال: الرفع بتوكن 998 اتجرب ونجح 2026-11-16 (شوف docs/youtube-status.md)
 var YT_CHANNEL_TITLE = 'Dr Ahmed Nabil - Chemistry'; // القناة اللي لازم يتنشر عليها
@@ -172,6 +172,23 @@ function handleReelMessage_(text) {
     return true;
   }
   return false;
+}
+
+/* ---------- الموافقة من Claude ---------- */
+
+// Claude بيغيّر حالة الريل في الشيت لـ "تمت الموافقة"، وهنا بننشره خلال دقيقة (بتتنده من pollTelegram في Code.gs جوه نفس القفل).
+// ريل واحد بس في كل مرة عشان حد الـ 6 دقايق. الريل اللي له رابط فيسبوك اتنشر قبل كده فبيتخطى.
+function publishApprovedReels_() {
+  var s = rsheet_();
+  if (!s) return;
+  for (var r = 2; r <= s.getLastRow(); r++) {
+    if (rtext_(r, RC.STATUS) === RST.APPROVED && !rtext_(r, RC.FB)) {
+      notify_('🎬 وصلت موافقتك من Claude، بنشر ريل رقم ' + rtext_(r, RC.NUM) + '...');
+      props_().setProperty('LAST_REEL_DATE', cairoDate_()); // عشان تيليجرام ما يبعتش ريل تاني النهارده
+      publishReel_(r);
+      return;
+    }
+  }
 }
 
 /* ---------- النشر على فيسبوك ريلز ---------- */
