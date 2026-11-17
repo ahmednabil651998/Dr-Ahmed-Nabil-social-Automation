@@ -40,7 +40,7 @@ function ai_(parts, json) {
   var txt = c && c.content && c.content.parts ? c.content.parts.map(function (p) { return p.text || ''; }).join('') : '';
   if (!txt) throw new Error('Gemini ما رجّعش رد' + (c && c.finishReason ? ' (' + c.finishReason + ')' : ''));
   if (!json) return txt.trim();
-  try { return JSON.parse(txt.replace(/^```json\s*|```\s*$/g, '')); }
+  try { return JSON.parse(txt.replace(/^\x60\x60\x60json\s*|\x60\x60\x60\s*$/g, '')); }
   catch (e) { throw new Error('Gemini رجّع رد مش مفهوم'); }
 }
 
