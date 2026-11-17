@@ -12,7 +12,7 @@ var SEND_HOUR = 17; // القيمة الافتراضية. الساعة الفع�
 var HASHTAGS = '#Dr_Ahmed_Nabil ❤️\n#ويبقي_الاثر ✨';
 
 // أعمدة الجدول
-var C = { NUM: 1, DATE: 2, STATUS: 3, HOOK: 4, CAPTION: 5, IMG: 6, NOTES: 7, TGMSG: 8, FBID: 9, IG: 10, TYPE: 11 };
+var C = { NUM: 1, DATE: 2, STATUS: 3, HOOK: 4, CAPTION: 5, IMG: 6, NOTES: 7, TGMSG: 8, FBID: 9, IG: 10, TYPE: 11, REQ: 12, IMGP: 13 };
 var ST = { READY: 'جاهز', SENT: 'اتبعت للموافقة', APPROVED: 'تمت الموافقة', DONE: 'اتنشر' };
 
 /* ---------- قايمة الإعداد في الجدول ---------- */
@@ -36,6 +36,9 @@ function onOpen() {
       .addItem('ربط إنستجرام (تجربة من غير نشر)', 'connectInstagram')
       .addItem('تحديث الأرقام دلوقتي', 'analyticsNow')
       .addItem('ابعت التقرير الأسبوعي دلوقتي', 'weeklyReportNow')
+      .addSeparator()
+      .addItem('اعمل قالب الصورة (Slides)', 'createImageTemplate')
+      .addItem('تجربة صورة (على تيليجرام)', 'testPostImage')
       .addSeparator()
       .addItem('رابط الداش بورد', 'dashboardLink')
       .addItem('تفعيل Webhook (Cloudflare)', 'enableWebhook')
@@ -222,7 +225,8 @@ function handleUpdate_(u) {
     tg_('answerCallbackQuery', { callback_query_id: cq.id });
     if (cq.data.charAt(0) === 'r') { handleReelCallback_(cq.data); return; } // زراير الريلز (Reels.gs)
     if (cq.data.indexOf('cm') === 0) { handleCommentCallback_(cq.data); return; } // زراير الكومنتات (Comments.gs)
-    if (cq.data.indexOf('aid:') === 0) { notify_('💡 بفكر...'); aiSuggestIdeas_(Number(cq.data.split(':')[1]) || 5); return; } // AI.gs
+    if (cq.data.indexOf('aid:') === 0) { requestIdeas_(Number(cq.data.split(':')[1]) || 5); return; } // AI.gs
+    if (cq.data.indexOf('sch:') === 0) { scheduleIdea_(Number(cq.data.split(':')[1])); return; } // AI.gs
     if (cq.data.indexOf('igr:') === 0) { retryIgPost_(Number(cq.data.split(':')[1])); return; }
     var parts = cq.data.split(':'), act = parts[0], row = Number(parts[1]);
     var status = cellText_(row, C.STATUS);
@@ -246,18 +250,13 @@ function handleUpdate_(u) {
   if (!m || String(m.chat.id) !== chat) return;
   var text = m.text || '';
   // فويس أو فيديو على البوت (AI.gs)
-  if (m.voice || m.audio || m.video || (m.document && /^video\//.test(m.document.mime_type || ''))) {
-    if (!on_('AI_ENABLED')) { notify_('الميزة دي محتاجة AI_ENABLED = true في تاب Settings.'); return; }
-    if (m.voice || m.audio) { notify_('🎙 وصل الفويس، بكتب البوست...'); var au = m.voice || m.audio; ideaToPost_(tgDownload_(au.file_id), null, au.mime_type || 'audio/ogg'); }
-    else videoToReel_(m);
-    return;
-  }
+  if (m.voice || m.audio) { ideaFromVoice_(m.voice || m.audio); return; }
+  if (m.video || (m.document && /^video\//.test(m.document.mime_type || ''))) { videoToReel_(m); return; }
   if (handleCommentMessage_(text)) return; // رد مكتوب على كومنت (Comments.gs)
   if (text.indexOf('/idea') === 0) {
     var idea = text.substring(5).trim();
-    if (!on_('AI_ENABLED')) notify_('الميزة دي محتاجة AI_ENABLED = true في تاب Settings.');
-    else if (!idea) notify_('اكتب الفكرة بعد /idea في نفس الرسالة.');
-    else ideaToPost_(null, idea);
+    if (!idea) notify_('اكتب الفكرة بعد /idea في نفس الرسالة.');
+    else ideaFromText_(idea);
     return;
   }
   if (text === '/health') { notify_(runHealth_(true).text); return; }
@@ -274,7 +273,7 @@ function handleUpdate_(u) {
   } else if (text === '/start' || text === '/help') {
     notify_('أنا بعتلك بوست النهارده كل يوم الساعة ' + num_('SEND_HOUR') + '، وريل النهارده الساعة ' + num_('REEL_SEND_HOUR') + ' للموافقة.\n' +
       '/post = ابعتلي بوست دلوقتي\n/reel = ابعتلي ريل دلوقتي\n/idea فكرتك = اكتبلي بوست منها\n/health = فحص السيستم\n/report = تقرير الأرقام\n' +
-      'ابعت فويس ← بوست جديد، وابعت فيديو ← ريل جديد (لو الذكاء الاصطناعي متفعّل)');
+      'ابعت فويس ← فكرة بوست، وابعت فيديو ← ريل جديد. Claude بيكتبهم في ميعاده (' + setting_('CLAUDE_TIMES') + ').');
   }
 }
 

@@ -52,6 +52,18 @@ function runHealth_(manual) {
     }
   }
 
+  // 5ب) الصور (Cloudflare + القالب)
+  if (on_('IMAGES_ENABLED')) {
+    if (!p.getProperty('CF_ACCOUNT_ID') || !p.getProperty('CF_API_TOKEN')) bad.push('الصور متفعّلة بس مفيش CF_ACCOUNT_ID أو CF_API_TOKEN في Script Properties.');
+    try { DriveApp.getFileById(setting_('IMAGE_TEMPLATE_ID')).getName(); ok.push('قالب الصورة: موجود'); }
+    catch (e) { bad.push('قالب الصورة مش موجود. شغّل "اعمل قالب الصورة".'); }
+  }
+
+  // 5ج) طابور Claude: حاجات مستنية من أكتر من يومين
+  var waiting = 0, sw = sheet_();
+  for (var w = 2; w <= sw.getLastRow(); w++) if (cellText_(w, C.STATUS) === ST_WRITE) waiting++;
+  if (waiting) ok.push('مستني Claude يكتبه: ' + waiting);
+
   // 6) التريجرز
   var handlers = ScriptApp.getProjectTriggers().map(function (t) { return t.getHandlerFunction(); });
   ['dailyJob', 'pollTelegram'].forEach(function (f) {

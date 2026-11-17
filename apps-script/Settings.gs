@@ -18,8 +18,13 @@ var SETTINGS_LIST = [
   ['IG_REELS_ENABLED', 'false', 'نشر الريلز على إنستجرام'],
   ['IG_STORY_REELS', 'false', 'نشر الريل كمان كستوري على إنستجرام'],
   ['TIKTOK_HELPER', 'false', 'بعد نشر الريل يبعتلك الفيديو والكابشن جاهزين لتيك توك'],
-  ['AI_ENABLED', 'false', 'الذكاء الاصطناعي (Gemini): فويس ← بوست، فيديو ← ريل، اقتراح أفكار وردود'],
+  ['AI_ENABLED', 'false', 'Gemini (ببلاش): يسمع الفويس والريلز ويحوّلهم نص، ويقترح ردود الكومنتات'],
   ['AI_MODEL', 'gemini-2.5-flash', 'اسم موديل Gemini'],
+  ['CLAUDE_WRITER_ENABLED', 'false', 'مهمة Claude المجدولة تكتب البوستات والريلز اللي حالتها "اكتبها" (من اشتراكك)'],
+  ['CLAUDE_TIMES', '10:43 الصبح و 8:43 بالليل', 'مواعيد مهمة Claude (للعرض بس، الميعاد نفسه بيتغير من المهمة)'],
+  ['IMAGES_ENABLED', 'false', 'صورة البوست تتعمل لوحدها: خلفية من Cloudflare + الهوك بالعربي من قالب Slides'],
+  ['IMAGE_TEMPLATE_ID', '', 'ID قالب Google Slides (بيتملى لوحده من "اعمل قالب الصورة")'],
+  ['IMAGE_STYLE', 'cinematic soft lighting, deep navy and warm gold tones, clean background, high detail, no text, no letters, no words, no logos', 'الستايل اللي بيتضاف لكل برومبت صورة'],
   ['ANALYTICS_ENABLED', 'false', 'سحب أرقام البوستات والريلز كل يوم لتاب Analytics'],
   ['ANALYTICS_HOUR', '3', 'ساعة سحب الأرقام'],
   ['ANALYTICS_DAYS', '60', 'نحدّث أرقام اللي اتنشر في آخر كام يوم'],
@@ -33,7 +38,7 @@ var SETTINGS_LIST = [
   ['COMMENTS_ENABLED', 'false', 'اقتراح ردود على الكومنتات والموافقة عليها من تيليجرام'],
   ['COMMENTS_DAYS', '14', 'نتابع كومنتات اللي اتنشر في آخر كام يوم'],
   ['COMMENTS_PER_RUN', '5', 'أقصى عدد كومنتات تتبعت لك كل ساعة'],
-  ['IDEAS_FROM_COMMENTS', 'false', 'كل أسبوع: الأسئلة المتكررة في الكومنتات تتحول لأفكار بوستات']
+  ['IDEAS_FROM_COMMENTS', 'false', 'كل جمعة: مهمة Claude تطلّع من كومنتات الأسبوع الأسئلة المتكررة وتكتب منها أفكار بوستات']
 ];
 
 var SETTINGS_CACHE_ = null;
@@ -63,7 +68,7 @@ var EXTRA_TABS = {
   Settings: ['المفتاح', 'القيمة', 'الشرح'],
   Analytics: ['المنصة', 'النوع', 'رقم', 'ID', 'الرابط', 'تاريخ النشر', 'آخر تحديث', 'لايكات/ريأكشنز', 'كومنتات', 'شير', 'مشاهدات/وصول', 'التفاعل'],
   Comments: ['ID الكومنت', 'ID البوست', 'الاسم', 'الكومنت', 'التاريخ', 'الرد المقترح', 'الحالة', 'رسالة تيليجرام'],
-  Templates: ['النوع', 'شكل البوست (للذكاء الاصطناعي)', 'هاشتاجات إضافية (اختياري)']
+  Templates: ['النوع', 'شكل البوست (لـ Claude)', 'هاشتاجات إضافية (اختياري)', 'ID قالب Slides للنوع ده (اختياري)']
 };
 
 function setupExtras() {
@@ -97,8 +102,13 @@ function setupExtras() {
   var ps = ss.getSheetByName(SHEET_NAME);
   ps.getRange(1, C.IG).setValue('رابط إنستجرام').setFontWeight('bold');
   ps.getRange(1, C.TYPE).setValue('النوع').setFontWeight('bold');
+  ps.getRange(1, C.REQ).setValue('الطلب لـ Claude').setFontWeight('bold');
+  ps.getRange(1, C.IMGP).setValue('برومبت الصورة').setFontWeight('bold');
   var rs = ss.getSheetByName(REELS_SHEET);
-  if (rs) rs.getRange(1, RC.IG).setValue('رابط إنستجرام').setFontWeight('bold');
+  if (rs) {
+    rs.getRange(1, RC.IG).setValue('رابط إنستجرام').setFontWeight('bold');
+    rs.getRange(1, RC.REQ).setValue('الطلب لـ Claude').setFontWeight('bold');
+  }
   SETTINGS_CACHE_ = null;
   SpreadsheetApp.getUi().alert('الإضافات اتجهزت ✅\nكل الميزات الجديدة مقفولة. فعّل اللي انت عاوزه من تاب Settings (غيّر false لـ true).');
 }
@@ -153,8 +163,8 @@ function extrasHourly_(now) {
       props_().setProperty('LAST_WEEKLY', wk);
       if (on_('REPORT_ENABLED')) weeklyReport_();
       if (on_('RECYCLE_ENABLED')) recycleJob_();
-      if (on_('IDEAS_FROM_COMMENTS') && on_('AI_ENABLED')) ideasFromComments_();
-    }]
+    }],
+    ['تجهيز اللي Claude كتبه', function () { writtenJob_(); }]
   ];
   jobs.forEach(function (j) {
     try { j[1](); } catch (e) { notify_('❌ خطأ في ' + j[0] + ': ' + e.message); }

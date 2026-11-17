@@ -15,9 +15,9 @@ var YT_CATEGORY = '27'; // Education
 var REEL_MAX_BYTES = 50 * 1024 * 1024; // حد Apps Script وحد إرسال الفيديو من بوت Telegram
 
 // أعمدة تاب Reels
-var RC = { NUM: 1, DATE: 2, STATUS: 3, TITLE: 4, CAPTION: 5, TOPIC: 6, VIDEO: 7, FB: 8, YT: 9, NOTES: 10, TGMSG: 11, IG: 12 };
+var RC = { NUM: 1, DATE: 2, STATUS: 3, TITLE: 4, CAPTION: 5, TOPIC: 6, VIDEO: 7, FB: 8, YT: 9, NOTES: 10, TGMSG: 11, IG: 12, REQ: 13 };
 var RST = { READY: 'جاهز', SENT: 'اتبعت للموافقة', APPROVED: 'تمت الموافقة', DONE: 'اتنشر', FAILED: 'فشل جزئي' };
-var REEL_HEADERS = ['رقم', 'التاريخ', 'الحالة', 'العنوان', 'الكابشن', 'هاشتاج الموضوع', 'ID ملف الفيديو', 'رابط فيسبوك', 'رابط يوتيوب', 'ملاحظات', 'رسالة تيليجرام', 'رابط إنستجرام'];
+var REEL_HEADERS = ['رقم', 'التاريخ', 'الحالة', 'العنوان', 'الكابشن', 'هاشتاج الموضوع', 'ID ملف الفيديو', 'رابط فيسبوك', 'رابط يوتيوب', 'ملاحظات', 'رسالة تيليجرام', 'رابط إنستجرام', 'الطلب لـ Claude'];
 
 /* ---------- تجهيز التاب ---------- */
 
