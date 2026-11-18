@@ -32,6 +32,9 @@
 - [ ] تحديث `apps-script/` في `main` بالكود الشغال (فرع `feature/system-upgrade` + ملفات `apps-script/next/`)، عشان الريبو يبقى نسخة طبق الأصل.
 - [ ] تسجيل التركيب في `docs/incidents.md`، وتحديث الحالة في `README.md`.
 
+## إنستجرام (محتاج د. أحمد على الكمبيوتر)
+- [ ] Generate Access Token + لصق التوكن و App Secret في «ربط فيسبوك»، وبعدها «ربط إنستجرام» والتفعيل. الخطوات في `docs/instagram-status.md`.
+
 ## محتاج د. أحمد (مش محتاج جهاز)
 - [ ] يضيف Google Sheets connector لمهمة «مراجعة الأسبوع: التعديلات والأرقام» من claude.ai، قبل السبت 2026-11-21.
 - [ ] يراجع `docs/seasonal-calendar.md`.
