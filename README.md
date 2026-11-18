@@ -32,7 +32,7 @@
 - [ ] نتعلم من تعديلات د. أحمد — تابين `Edits` و `Style` اتعملوا في الشيت، ومهام Claude اتحدّثت، ومهمة أسبوعية «التعلم من تعديلاتك» (السبت 1:16 الضهر). فاضل تركيب `apps-script/Learning.gs` + سطرين في `Code.gs` و`Reels.gs` (`docs/edit-learning-install.md`). الروتين في `instructions/edit-learning.md`
 - [ ] ريلز تيك توك — لسه
 - [ ] داش بورد متابعة (Cloudflare) — اتلغت؛ مش محتاجينها (`docs/intelligence-plan.md`)
-- [ ] التعلم من الأرقام والإلهام (Content Intelligence) — الخطة في `docs/intelligence-plan.md`. المرحلة A1 (اختبار قراءة الأرقام) مكتوبة في طلب الدمج رقم 11 ولسه ما اتركّبتش
+- [ ] التعلم من الأرقام والإلهام (Content Intelligence) — الخطة في `docs/intelligence-plan.md`. A1 اتلغت (طلب الدمج 10 فيه سحب الأرقام). A2 (لقطات 48 ساعة و7 أيام) في `apps-script/next/Snapshots.gs` مستنية التركيب. A3 + C في مهمة «مراجعة الأسبوع» (محتاجة Google Sheets connector يتضاف لها)
 - [ ] طلب الدمج رقم 10 (23 إضافة) — ⚠️ اتقال إنه مش هيتدمج، لكن الكود بتاعه **متركّب فعلًا** في Apps Script من 2026-11-17 (التابات Settings و Analytics و Comments و Templates موجودة في الشيت، وفرع `feature/system-upgrade` فيه سجل التركيب). يعني `apps-script/` في main قديم. محتاجين قرار: يتدمج ولا يترجع
 
 راجع `docs/incidents.md` لسجل الأعطال والملاحظات.

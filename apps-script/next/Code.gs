@@ -137,6 +137,7 @@ function dailyJob() {
   var now = new Date();
   try { reelsDailyJob_(now); } catch (e) { notify_('❌ خطأ في الريلز: ' + e.message); } // Reels.gs
   try { extrasHourly_(now); } catch (e) { notify_('❌ خطأ في الإضافات: ' + e.message); } // Settings.gs
+  try { if (typeof snapshotsJob_ === 'function') snapshotsJob_(); } catch (e) { notify_('❌ خطأ في لقطات الأرقام: ' + e.message); } // Snapshots.gs
   var hour = Number(Utilities.formatDate(now, TZ, 'H')), sendHour = num_('SEND_HOUR');
   if (hour < sendHour || hour > sendHour + CATCHUP_HOURS) return;
   var today = cairoDate_(now);
