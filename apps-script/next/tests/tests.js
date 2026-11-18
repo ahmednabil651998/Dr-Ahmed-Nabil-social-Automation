@@ -30,7 +30,7 @@ e.ctx.pollTelegram();check('2b الدقيقة اللي بعدها: مفيش مح
 // 3) انقطاع الاتصال بعد ما فيسبوك نشر فعلًا (Timeout) — الكود الشغال
 e=makeEnv({files,posts:[H,['3','2026-11-18','اتبعت للموافقة','h','c','img']],net:{fbTimeoutAfterPost:true},updates:[cb('ok:2')]});
 e.ctx.pollTelegram();e.net.fbTimeoutAfterPost=false;e.ctx.pollTelegram();
-check('3 (قديم، حرج) انقطاع بعد ما فيسبوك نشر: نفس البوست بيتنشر تاني (في نفس الدقيقة وفي اللي بعدها)',e.log.fbPosts.length>1,'عدد مرات النشر = '+e.log.fbPosts.length);
+check('3 انقطاع بعد ما فيسبوك نشر: مفيش نشر تاني، والحالة "محتاج مراجعة"',e.log.fbPosts.length===1&&st(e,2)==='محتاج مراجعة','عدد مرات النشر = '+e.log.fbPosts.length);
 
 // 4) Learning.gs مش موجود
 e=makeEnv({files:files.filter(f=>!f.endsWith('Learning.gs')),posts:[H,['3','2026-11-18','اتبعت للموافقة','h','قديم','img']],props:{EDIT_ROW:'2'},updates:[msg('كابشن جديد')]});
@@ -53,10 +53,10 @@ check('4d فشل عمل تاب Edits: التعديل اتحفظ، وجه تنب�
 // 5) تعديل بعد الموافقة/النشر من زرار قديم — الكود الشغال
 e=makeEnv({files,posts:[H,['3','2026-11-17','اتنشر','h','قديم','img','','','P_old']],updates:[cb('ed:2',1),msg('كابشن تاني',2),cb('ok:2',3)]});
 e.ctx.pollTelegram();
-check('5 (قديم، حرج) ✏️ على بوست اتنشر: بيتبعت للموافقة تاني، و"انشر" بتنشره مرة تانية',e.log.fbPosts.length===1&&st(e,2)==='اتنشر','اتنشر '+e.log.fbPosts.length+' مرة جديدة');
+check('5 ✏️ على بوست اتنشر من رسالة قديمة: مرفوض، ومفيش نشر تاني',e.log.fbPosts.length===0&&st(e,2)==='اتنشر'&&e.sheets.Posts.d[1][4]==='قديم','اتنشر '+e.log.fbPosts.length+' مرة جديدة');
 e=makeEnv({files,posts:[H,['3','2026-11-17','اتنشر','h','قديم','img','','','P_old']],updates:[cb('sk:2')]});
 e.ctx.pollTelegram();
-check('5b (قديم، حرج) ⏭ أجّل على بوست اتنشر: بيرجع "جاهز" وهيتنشر تاني',st(e,2)==='جاهز');
+check('5b ⏭ أجّل على بوست اتنشر من رسالة قديمة: مرفوض، والحالة فضلت "اتنشر"',st(e,2)==='اتنشر'&&e.sheets.Posts.d[1][1]==='2026-11-17');
 
 // 6) بوست جاهز وميعاده فات
 e=makeEnv({files,posts:[H,['3','2026-11-10','جاهز','h','c','img'],['4','2026-11-18','جاهز','h','c','img']],now:'2026-11-18T15:05:00Z'});
@@ -119,4 +119,61 @@ check('S17 خطأ جوه Snapshots: البوست اتبعت عادي قبله، 
 // من غير Snapshots.gs خالص
 e=makeEnv({files:files.filter(f=>!f.endsWith('Snapshots.gs')),posts:posts(),now:'2026-11-18T15:05:00Z'});e.ctx.dailyJob();
 check('S18 من غير Snapshots.gs: dailyJob شغال عادي',st(e,2)==='اتبعت للموافقة');
+
+// ---------- حماية النشر (P1/P2) ----------
+const SENTROW=()=>[H,['3','2026-11-18','اتبعت للموافقة','h','c','img']];
+const kb=e=>e.log.tgRaw||[];
+// G1 نجاح مع تأكيد
+e=makeEnv({files,posts:SENTROW(),updates:[cb('ok:2')]});e.ctx.pollTelegram();
+check('G1 نجاح النشر مع تأكيد Meta: "اتنشر" ورقم فيسبوك متسجل، ونشر مرة واحدة',st(e,2)==='اتنشر'&&e.sheets.Posts.d[1][8]==='P_1'&&e.log.fbPosts.length===1&&e.props.LAST_PUBLISHED_DATE);
+// G2 انقطاع قبل التأكيد + إعادة تشغيل المهام
+e=makeEnv({files,posts:SENTROW(),net:{fbTimeoutAfterPost:true},updates:[cb('ok:2')]});e.ctx.pollTelegram();
+const g2p=(e.log.tgRaw||[]).find(p=>/مش متأكد إن بوست رقم 3 اتنشر/.test(p.text||''));const g2msg=!!g2p&&/pv1:2/.test(g2p.reply_markup)&&/pv0:2/.test(g2p.reply_markup);
+e.net.fbTimeoutAfterPost=false;for(let i=0;i<5;i++)e.ctx.pollTelegram();e.setNow('2026-11-18T16:05:00Z');e.ctx.dailyJob();e.setNow('2026-11-18T17:05:00Z');e.ctx.dailyJob();
+check('G2 انقطاع بعد النشر قبل التأكيد: "محتاج مراجعة"، ورسالة فيها زرارين، ومفيش إعادة بعد 5 دقايق ولا من dailyJob',st(e,2)==='محتاج مراجعة'&&g2msg&&e.log.fbPosts.length===1,'نشر '+e.log.fbPosts.length+' مرة');
+// G2b/c/d ردود مش مؤكدة تانية
+for(const [k,label] of [['fbHtml','رد HTML (502)'],['fbTransient','خطأ مؤقت code 2'],['fbNoId','رد من غير رقم البوست']]){
+  e=makeEnv({files,posts:SENTROW(),net:{[k]:true},updates:[cb('ok:2')]});e.ctx.pollTelegram();e.net[k]=false;e.ctx.pollTelegram();
+  check('G2 '+label+': "محتاج مراجعة" ومفيش إعادة لوحدها',st(e,2)==='محتاج مراجعة'&&e.log.fbPosts.length===1);}
+// G3 فشل مؤكد: الإعادة اليدوية مسموحة
+e=makeEnv({files,posts:SENTROW(),net:{fbError:true},updates:[cb('ok:2',1)]});e.ctx.pollTelegram();
+const g3a=st(e,2)==='اتبعت للموافقة';e.net.fbError=false;e.ctx.handleUpdate_(cb('ok:2',2));
+check('G3 فشل مؤكد (توكن): يرجع للموافقة، و"انشر" تاني بتنشر عادي',g3a&&st(e,2)==='اتنشر'&&e.log.fbPosts.length===2,'محاولتين: فشلت وبعدين نجحت');
+// G4 مراجعة يدوية: اتنشر فعلًا
+e=makeEnv({files,posts:[H,['3','2026-11-18','محتاج مراجعة','h','c','img']],updates:[cb('pv1:2',1),cb('pv1:2',2),cb('pv0:2',3)]});e.ctx.pollTelegram();
+check('G4 "✅ اتنشر فعلًا": "اتنشر" من غير نشر، والضغط تاني أو "انشره" بعدها مرفوض',st(e,2)==='اتنشر'&&e.log.fbPosts.length===0&&/اتأكد يدوي/.test(e.sheets.Posts.d[1][6]));
+// G5 مراجعة يدوية: ما اتنشرش
+e=makeEnv({files,posts:[H,['3','2026-11-18','محتاج مراجعة','h','c','img']],updates:[cb('pv0:2',1),cb('pv0:2',2)]});e.ctx.pollTelegram();
+check('G5 "🔁 ما اتنشرش، انشره" مرتين: نشر مرة واحدة بس',st(e,2)==='اتنشر'&&e.log.fbPosts.length===1);
+// G6 زرار تعديل قديم
+e=makeEnv({files,posts:[H,['3','2026-11-17','اتنشر','h','قديم','img','','','P_old']],updates:[cb('ed:2',1),msg('كابشن تاني',2)]});e.ctx.pollTelegram();
+check('G6 ✏️ من رسالة قديمة لبوست منشور: مرفوض، والرسالة اللي بعده ما اتعاملتش كتعديل',!e.props.EDIT_ROW&&e.sheets.Posts.d[1][4]==='قديم'&&!e.sheets.Edits);
+e=makeEnv({files,posts:[H,['3','2026-11-18','محتاج مراجعة','h','قديم','img']],updates:[cb('ed:2',1),cb('sk:2',2)]});e.ctx.pollTelegram();
+check('G6b ✏️ و ⏭ على بوست "محتاج مراجعة": مرفوضين',st(e,2)==='محتاج مراجعة'&&!e.props.EDIT_ROW&&e.sheets.Posts.d[1][1]==='2026-11-18');
+e=makeEnv({files,posts:SENTROW(),updates:[cb('ed:2',1),msg('كابشن جديد',2)]});e.ctx.pollTelegram();
+check('G6c ✏️ على بوست لسه مستني: شغال عادي',/كابشن جديد/.test(e.sheets.Posts.d[1][4])&&st(e,2)==='اتبعت للموافقة');
+// G7 زرار تأجيل قديم ومتكرر
+e=makeEnv({files,posts:SENTROW(),updates:[cb('sk:2',1),cb('sk:2',2)]});e.ctx.pollTelegram();
+check('G7 ⏭ مرتين على نفس البوست: اتأجّل يوم واحد بس',e.sheets.Posts.d[1][1]==='2026-11-19'&&st(e,2)==='جاهز');
+// G8 الضغط المتكرر على "انشر"
+e=makeEnv({files,posts:SENTROW(),updates:[cb('ok:2',1),cb('ok:2',2),cb('ok:2',3)]});e.ctx.pollTelegram();
+check('G8 "انشر" 3 مرات: نشر مرة واحدة',e.log.fbPosts.length===1&&st(e,2)==='اتنشر');
+// G9 بوست ليه رقم فيسبوك وحالته اتغيرت بالغلط لـ "تمت الموافقة"
+e=makeEnv({files,posts:[H,['3','2026-11-18','تمت الموافقة','h','c','img','','','P_old']]});e.ctx.pollTelegram();
+check('G9 "تمت الموافقة" ومعاه رقم فيسبوك: مفيش نشر',e.log.fbPosts.length===0);
+e=makeEnv({files,posts:[H,['3','2026-11-18','اتبعت للموافقة','h','c','img','','','P_old']],updates:[cb('ok:2')]});e.ctx.pollTelegram();
+check('G9b "انشر" على بوست ليه رقم فيسبوك: مفيش نشر، والحالة "اتنشر"',e.log.fbPosts.length===0&&st(e,2)==='اتنشر');
+// G10 المحاولة المتأخرة وفيه بوست "محتاج مراجعة"
+e=makeEnv({files,posts:[H,['3','2026-11-18','محتاج مراجعة','h','c','img'],['4','2026-11-18','جاهز','h','c','img']],now:'2026-11-18T16:05:00Z'});e.ctx.dailyJob();
+check('G10 المحاولة المتأخرة وفيه بوست "محتاج مراجعة": ما بعتتش بوست جديد',st(e,3)==='جاهز'&&e.log.tg.some(x=>/مراجعتك/.test(x)));
+// ---------- الريلز ----------
+const RH=['رقم','التاريخ','الحالة','العنوان','الكابشن','الموضوع','فيديو','فيسبوك','يوتيوب','ملاحظات','tg','ig'];
+e=makeEnv({files,reels:[RH,['1','2026-11-16','اتنشر','t','c','x','vid','https://www.facebook.com/reel/V0','https://youtube.com/shorts/Y0']],updates:[cb('red:2',1),cb('rsk:2',2)]});e.ctx.pollTelegram();
+check('R1 ✏️ و ⏭ على ريل منشور من رسالة قديمة: مرفوضين',e.sheets.Reels.d[1][2]==='اتنشر'&&!e.props.REEL_EDIT_ROW&&e.sheets.Reels.d[1][1]==='2026-11-16');
+e=makeEnv({files,reels:[RH,['1','2026-11-18','اتبعت للموافقة','t','c','x','vid']],net:{reelStatusThrow:true},updates:[cb('rok:2')]});
+e.ctx.YT_ENABLED=false;e.ctx.reelBlob_=()=>({getBytes:()=>[1,2,3]});e.ctx.pollTelegram();
+check('R2 الريل اترفع والتأكيد بس اللي ما وصلش: الرابط اتسجل، ومش "فشل جزئي"',/reel\/V1/.test(e.sheets.Reels.d[1][7])&&e.sheets.Reels.d[1][2]==='اتنشر'&&e.log.reel.filter(x=>x==='finish').length===1);
+e=makeEnv({files,reels:[RH,['1','2026-11-18','اتبعت للموافقة','t','c','x','vid']],updates:[cb('rok:2',1),cb('rok:2',2)]});
+e.ctx.YT_ENABLED=false;e.ctx.reelBlob_=()=>({getBytes:()=>[1]});e.ctx.pollTelegram();
+check('R3 "انشر" على الريل مرتين: رفع مرة واحدة',e.log.reel.filter(x=>x==='finish').length===1);
 console.log(R.join('\n'));console.log('\nنجح '+pass+' / فشل '+fail);

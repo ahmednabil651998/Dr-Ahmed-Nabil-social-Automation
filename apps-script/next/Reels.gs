@@ -142,6 +142,7 @@ function handleReelCallback_(data) {
     rcell_(row, RC.STATUS).setValue(RST.APPROVED);
     publishReel_(row);
   } else if (act === 'red') {
+    if (status !== RST.SENT) { notify_('الريل ده اتعالج قبل كده (' + status + ')، فمش هينفع يتعدّل من الرسالة دي.'); return; }
     props_().setProperty('REEL_EDIT_ROW', String(row));
     notify_('✏️ ابعتلي كابشن الريل الجديد كامل في رسالة واحدة. (الهاشتاجات بتتضاف لوحدها)');
   } else if (act === 'rre') {
@@ -153,6 +154,7 @@ function handleReelCallback_(data) {
     rcell_(row, RC.STATUS).setValue(RST.READY);
     notify_('✅ الريل رقم ' + rtext_(row, RC.NUM) + ' بقى "جاهز"، وهيتبعتلك للموافقة يوم ' + rtext_(row, RC.DATE) + '.');
   } else if (act === 'rsk') {
+    if (status !== RST.SENT) { notify_('الريل ده اتعالج قبل كده (' + status + ')، فمش هينفع يتأجّل من الرسالة دي.'); return; }
     var d = new Date(rtext_(row, RC.DATE) + 'T12:00:00Z');
     d.setUTCDate(d.getUTCDate() + 1);
     rcell_(row, RC.DATE).setValue(Utilities.formatDate(d, 'UTC', 'yyyy-MM-dd'));
@@ -250,7 +252,7 @@ function publishReel_(row) {
     rcell_(row, RC.STATUS).setValue(RST.FAILED);
     rcell_(row, RC.NOTES).setValue(failed.join('\n'));
     tg_('sendMessage', { chat_id: props_().getProperty('CHAT_ID'),
-      text: 'لما تصلّح المشكلة دوس الزرار ده، وهيعيد المنصة اللي فشلت بس:',
+      text: 'لما تصلّح المشكلة دوس الزرار ده، وهيعيد المنصة اللي فشلت بس.\n⚠️ لو الخطأ كان انقطاع اتصال، افتح الصفحة والقناة الأول واتأكد إن الريل مش موجود، عشان ما يترفعش مرتين:',
       reply_markup: JSON.stringify({ inline_keyboard: [[{ text: '🔁 أعد المحاولة', callback_data: 'rre:' + row }]] }) });
   } else {
     var wasDone = rtext_(row, RC.STATUS) === RST.DONE;
@@ -365,7 +367,15 @@ function uploadFbReel_(row, state) {
 
   // استنى شوية واتأكد إن فيسبوك قبل الفيديو (زي الدقة والمدة)
   Utilities.sleep(20000);
-  var st = fbJson_(UrlFetchApp.fetch(GRAPH + videoId + '?fields=status&access_token=' + encodeURIComponent(token), { muteHttpExceptions: true }));
+  var stResp;
+  try {
+    stResp = UrlFetchApp.fetch(GRAPH + videoId + '?fields=status&access_token=' + encodeURIComponent(token), { muteHttpExceptions: true });
+  } catch (e) {
+    // خطوة النشر نجحت، والتأكيد بس هو اللي ما وصلش: نسجّل الرابط بدل ما يتعلّم فشل ويترفع تاني
+    notify_('⚠️ فيسبوك قبل الريل، بس ما قدرتش أتأكد من حالته (' + e.message + '). افتح الرابط واتأكد إنه شغال.');
+    return videoId;
+  }
+  var st = fbJson_(stResp);
   var phases = st.status || {};
   ['uploading_phase', 'processing_phase', 'publishing_phase'].forEach(function (k) {
     if (phases[k] && phases[k].error) throw new Error('فيسبوك رفض الفيديو: ' + phases[k].error.message);

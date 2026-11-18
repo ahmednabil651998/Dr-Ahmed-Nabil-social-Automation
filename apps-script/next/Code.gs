@@ -14,6 +14,8 @@ var HASHTAGS = '#Dr_Ahmed_Nabil ❤️\n#ويبقي_الاثر ✨';
 // أعمدة الجدول
 var C = { NUM: 1, DATE: 2, STATUS: 3, HOOK: 4, CAPTION: 5, IMG: 6, NOTES: 7, TGMSG: 8, FBID: 9, IG: 10, TYPE: 11, REQ: 12, IMGP: 13 };
 var ST = { READY: 'جاهز', SENT: 'اتبعت للموافقة', APPROVED: 'تمت الموافقة', DONE: 'اتنشر' };
+// لو فيسبوك ما أكدش النشر (الاتصال اتقطع): البوست ممكن يكون اتنشر، فمفيش إعادة لوحدها لحد ما د. أحمد يراجع
+var ST_REVIEW = 'محتاج مراجعة';
 
 /* ---------- قايمة الإعداد في الجدول ---------- */
 
@@ -167,10 +169,10 @@ function catchUpAllowed_(today, sendHour) {
   var s = sheet_(), pending = 0;
   for (var r = 2; r <= s.getLastRow(); r++) {
     var st = cellText_(r, C.STATUS);
-    if (st === ST.SENT || st === ST.APPROVED) pending = cellText_(r, C.NUM);
+    if (st === ST.SENT || st === ST.APPROVED || st === ST_REVIEW) pending = cellText_(r, C.NUM);
   }
   if (pending) {
-    notify_('⏰ بوست النهارده ما اتبعتش الساعة ' + sendHour + '. ما بعتش بوست جديد عشان بوست رقم ' + pending + ' لسه مستني موافقتك.');
+    notify_('⏰ بوست النهارده ما اتبعتش الساعة ' + sendHour + '. ما بعتش بوست جديد عشان بوست رقم ' + pending + ' لسه مستني موافقتك أو مراجعتك.');
     return false;
   }
   notify_('⏰ بوست النهارده ما اتبعتش الساعة ' + sendHour + '، فببعته دلوقتي.');
@@ -243,6 +245,30 @@ function pollTelegram() {
 }
 
 // الموافقة من Claude: Claude بيغيّر حالة البوست في الشيت لـ "تمت الموافقة"، وهنا بننشره خلال دقيقة.
+// فيسبوك ما أكدش النشر: الحالة بتبقى "محتاج مراجعة"، ومفيش أي إعادة لوحدها (publishApproved_ بتنشر "تمت الموافقة" بس)
+function markPublishUnsure_(row, why) {
+  cell_(row, C.STATUS).setValue(ST_REVIEW);
+  tg_('sendMessage', { chat_id: props_().getProperty('CHAT_ID'),
+    text: '⚠️ مش متأكد إن بوست رقم ' + cellText_(row, C.NUM) + ' اتنشر.\nالسبب: ' + why +
+      '\nممكن يكون اتنشر فعلًا، فمش هعيد النشر لوحدي. افتح الصفحة واتأكد، وبعدين اختار:',
+    reply_markup: JSON.stringify({ inline_keyboard: [[{ text: '✅ اتنشر فعلًا', callback_data: 'pv1:' + row }],
+      [{ text: '🔁 ما اتنشرش، انشره', callback_data: 'pv0:' + row }]] }) });
+}
+
+function handlePublishReview_(act, row, status) {
+  if (status !== ST_REVIEW) { notify_('البوست ده اتعالج قبل كده (' + status + ').'); return; }
+  if (act === 'pv1') {
+    cell_(row, C.STATUS).setValue(ST.DONE);
+    var note = cellText_(row, C.NOTES);
+    cell_(row, C.NOTES).setValue((note ? note + '\n' : '') + 'اتنشر (اتأكد يدوي ' + cairoDate_() + '، ورقم فيسبوك مش متسجل)');
+    props_().setProperty('LAST_PUBLISHED_DATE', cairoDate_());
+    notify_('تمام، اتسجّل إن بوست رقم ' + cellText_(row, C.NUM) + ' اتنشر.');
+  } else {
+    cell_(row, C.STATUS).setValue(ST.APPROVED);
+    publish_(row);
+  }
+}
+
 function publishApproved_() {
   var s = sheet_(), last = s.getLastRow();
   for (var r = 2; r <= last; r++) {
@@ -263,14 +289,17 @@ function handleUpdate_(u) {
     if (cq.data.indexOf('igr:') === 0) { retryIgPost_(Number(cq.data.split(':')[1])); return; }
     var parts = cq.data.split(':'), act = parts[0], row = Number(parts[1]);
     var status = cellText_(row, C.STATUS);
+    if (act === 'pv1' || act === 'pv0') { handlePublishReview_(act, row, status); return; }
     if (act === 'ok') {
       if (status !== ST.SENT) { notify_('البوست ده اتعالج قبل كده (' + status + ').'); return; }
       cell_(row, C.STATUS).setValue(ST.APPROVED);
       publish_(row);
     } else if (act === 'ed') {
+      if (status !== ST.SENT) { notify_('البوست ده اتعالج قبل كده (' + status + ')، فمش هينفع يتعدّل من الرسالة دي.'); return; }
       props_().setProperty('EDIT_ROW', String(row));
       notify_('✏️ ابعتلي الكابشن الجديد كامل في رسالة واحدة، وأنا هبعتهولك تاني للموافقة. (والهاشتاجات بتتضاف لوحدها)');
     } else if (act === 'sk') {
+      if (status !== ST.SENT) { notify_('البوست ده اتعالج قبل كده (' + status + ')، فمش هينفع يتأجّل من الرسالة دي.'); return; }
       var d = new Date(cellText_(row, C.DATE) + 'T12:00:00Z');
       d.setUTCDate(d.getUTCDate() + 1);
       cell_(row, C.DATE).setNumberFormat('@').setValue(Utilities.formatDate(d, 'UTC', 'yyyy-MM-dd'));
@@ -315,21 +344,36 @@ function handleUpdate_(u) {
 /* ---------- النشر على فيسبوك ---------- */
 
 function publish_(row) {
+  // البوست ليه رقم فيسبوك يبقى اتنشر قبل كده: مش هننشره تاني مهما كانت الحالة
+  if (cellText_(row, C.FBID)) {
+    cell_(row, C.STATUS).setValue(ST.DONE);
+    notify_('البوست رقم ' + cellText_(row, C.NUM) + ' اتنشر قبل كده، فمش هنشره تاني.');
+    return;
+  }
   var token = props_().getProperty('FB_PAGE_TOKEN');
   var blob = stripImageMeta_(DriveApp.getFileById(cellText_(row, C.IMG)).getBlob());
   var caption = ensureHashtags_(cellText_(row, C.CAPTION));
-  var resp = UrlFetchApp.fetch(GRAPH + PAGE_ID + '/photos', {
-    method: 'post',
-    payload: { source: blob, caption: caption, published: 'true', access_token: token },
-    muteHttpExceptions: true
-  });
-  var j = JSON.parse(resp.getContentText());
+  var j;
+  try {
+    var resp = UrlFetchApp.fetch(GRAPH + PAGE_ID + '/photos', {
+      method: 'post',
+      payload: { source: blob, caption: caption, published: 'true', access_token: token },
+      muteHttpExceptions: true
+    });
+    j = JSON.parse(resp.getContentText());
+  } catch (e) { // الاتصال اتقطع، أو الرد مش مفهوم: فيسبوك ممكن يكون نشر فعلًا
+    markPublishUnsure_(row, e.message);
+    return;
+  }
   if (j.error) {
-    cell_(row, C.STATUS).setValue(ST.SENT);
+    // أخطاء فيسبوك المؤقتة (code 1 و 2 أو is_transient) ممكن تحصل والبوست اتنشر، فبتتعامل زي الانقطاع
+    if (j.error.is_transient || j.error.code === 1 || j.error.code === 2) { markPublishUnsure_(row, j.error.message); return; }
+    cell_(row, C.STATUS).setValue(ST.SENT); // فشل مؤكد: يرجع للموافقة، و"انشر" تشتغل تاني
     notify_('❌ النشر فشل: ' + j.error.message + '\nممكن توكن فيسبوك انتهى. شغّل "2) ربط فيسبوك" من قايمة الجدول.');
     return;
   }
   var postId = j.post_id || j.id;
+  if (!postId) { markPublishUnsure_(row, 'فيسبوك ردّ من غير رقم البوست'); return; }
   cell_(row, C.STATUS).setValue(ST.DONE);
   cell_(row, C.FBID).setValue(postId);
   props_().setProperty('LAST_PUBLISHED_DATE', cairoDate_());

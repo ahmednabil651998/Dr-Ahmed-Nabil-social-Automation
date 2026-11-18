@@ -1,7 +1,7 @@
 #!/bin/bash
 # بيشغّل اختبارات المراجعة على الكود الشغال (feature/system-upgrade) + ملفات apps-script/next. مفيش أي اتصال حقيقي.
 set -e
-cd "$(git rev-parse --show-toplevel)"
+cd "$(dirname "$0")" && cd "$(git rev-parse --show-toplevel)"
 git fetch -q origin feature/system-upgrade
 T=$(mktemp -d)
 for f in $(git ls-tree --name-only origin/feature/system-upgrade apps-script/ | grep '\.gs$'); do

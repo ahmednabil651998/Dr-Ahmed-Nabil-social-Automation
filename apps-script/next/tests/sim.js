@@ -20,7 +20,7 @@ function makeEnv(opts){
   if(opts.analytics)add('Analytics',opts.analytics);
   if(opts.snapshots!==false)add('Snapshots',[['المنصة','النوع','رقم','ID','اللقطة']]);
   const props=Object.assign({CHAT_ID:'1',TG_TOKEN:'x',FB_PAGE_TOKEN:'y'},opts.props||{});
-  const log={tg:[],fbPosts:[],graph:[]};
+  const log={tg:[],fbPosts:[],graph:[],reel:[]};
   const net=opts.net||{};
   let docLockHeld=!!opts.docLockHeld;
   const ctx={console,JSON,Math,
@@ -32,21 +32,27 @@ function makeEnv(opts){
      if(tz==='UTC'&&f==='yyyy-MM-dd')return d.toISOString().slice(0,10);
      return f==='H'?String(H):f==='u'?String(t.getUTCDay()||7):f==='yyyy-MM-dd'?`${Y}-${M}-${D}`:f==='yyyy-ww'?'2026-47':`${Y}-${M}-${D} ${p(H)}:${mi}`},
      parseDate:(s)=>{const[a,b]=s.split(' ');const[y,m,dd]=a.split('-');const[h,mi]=b.split(':');return new Date(Date.UTC(+y,+m-1,+dd,+h-2,+mi))},
-     base64EncodeWebSafe:x=>'b',computeDigest:()=>[1],DigestAlgorithm:{MD5:1},newBlob:()=>({})},
+     base64EncodeWebSafe:x=>'b',sleep(){},computeDigest:()=>[1],DigestAlgorithm:{MD5:1},newBlob:()=>({})},
    DriveApp:{getFileById:()=>({getBlob:()=>({getBytes:()=>[],setBytes(){},getContentType:()=>'image/png'})})},
    ScriptApp:{getProjectTriggers:()=>[{getHandlerFunction:()=>'dailyJob'},{getHandlerFunction:()=>'pollTelegram'}]},
    CacheService:{getScriptCache:()=>({get:()=>null,put(){}})},
    UrlFetchApp:{fetch:(url,o)=>{
      if(url.indexOf('api.telegram.org')>=0){
        if(net.tgThrow)throw new Error('Address unavailable (telegram)');
-       const p=(o&&o.payload)||{};log.tg.push(p.text||(p.photo?'[photo] '+(p.caption||'').slice(0,20):url.split('/').pop()));
+       const p=(o&&o.payload)||{};log.tgRaw=(log.tgRaw||[]).concat([p]);log.tg.push(p.text||(p.photo?'[photo] '+(p.caption||'').slice(0,20):url.split('/').pop()));
        if(url.indexOf('getUpdates')>=0)return{getContentText:()=>JSON.stringify({ok:true,result:opts.updates?opts.updates.splice(0):[]})};
        return{getContentText:()=>net.tgHttpError?'{"ok":false,"description":"Bad Request"}':'{"ok":true,"result":{"message_id":'+(100+log.tg.length)+'}}'}}
      if(url.indexOf('/photos')>=0){ // نشر بوست فيسبوك
        log.fbPosts.push(o.payload.caption.slice(0,25));
        if(net.fbTimeoutAfterPost)throw new Error('Timeout: graph.facebook.com');
        if(net.fbError)return{getContentText:()=>'{"error":{"message":"Invalid token","code":190}}'};
+       if(net.fbTransient)return{getContentText:()=>'{"error":{"message":"Service temporarily unavailable","code":2,"is_transient":true}}'};
+       if(net.fbHtml)return{getContentText:()=>'<html>502 Bad Gateway</html>'};
+       if(net.fbNoId)return{getContentText:()=>'{}'};
        return{getContentText:()=>'{"post_id":"P_'+log.fbPosts.length+'"}'}}
+     if(url.indexOf('/video_reels')>=0){log.reel.push(o.payload.upload_phase);return{getContentText:()=>o.payload.upload_phase==='start'?'{"video_id":"V1"}':'{"success":true}'}}
+     if(url.indexOf('rupload.facebook.com')>=0)return{getContentText:()=>'{"success":true}'};
+     if(url.indexOf('V1?fields=status')>=0){if(net.reelStatusThrow)throw new Error('Timeout: graph.facebook.com');return{getContentText:()=>'{"status":{}}'}}
      log.graph.push(url.split('?')[0].split('/').slice(-2).join('/'));
      if(net.graphError)return{getContentText:()=>'{"error":{"message":"(#100) metric invalid","code":100}}'};
      if(url.indexOf('/insights')>=0){ if(net.metricError)return{getContentText:()=>'{"error":{"message":"(#100) invalid metric","code":100}}'};
