@@ -28,7 +28,7 @@
 
 ## P1 — مزايا مكتوبة ومتركّبة بس مقفولة (`false` في Settings)
 
-> متفعّلين فعلًا (بس مش متأكدين إنهم شغالين، شوف العطل فوق): `HEALTH_ENABLED`، `CLAUDE_WRITER_ENABLED`، `ANALYTICS_ENABLED` (التاب فاضي)، `REPORT_ENABLED` (معتمد على Analytics)، `SNAPSHOTS_ENABLED` (الملف مش متركّب).
+> متفعّلين فعلًا (الفحص اليومي وClaude شغالين؛ Analytics فاضي): `HEALTH_ENABLED`، `CLAUDE_WRITER_ENABLED`، `ANALYTICS_ENABLED` (التاب فاضي)، `REPORT_ENABLED` (معتمد على Analytics)، `SNAPSHOTS_ENABLED` (الملف مش متركّب).
 
 تتفعّل **واحدة واحدة** بعد P0، وكل واحدة بموافقة د. أحمد (الترتيب في `docs/rollout.md`):
 
