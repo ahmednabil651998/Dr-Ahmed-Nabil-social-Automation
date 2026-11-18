@@ -31,7 +31,7 @@
 - د. أحمد ما كانش جنب الكمبيوتر، فاتأجل لبكرة.
 
 ## الخطوة الجاية
-1. Claude يفتح Graph API Explorer (`https://developers.facebook.com/tools/explorer/1156816820230277/`) ويعلّم الـ 10 صلاحيات (الـ 7 + `pages_manage_engagement` + `pages_read_user_content` + `read_insights`).
+1. Claude يفتح Graph API Explorer (`https://developers.facebook.com/tools/explorer/1156816820230277/`) ويعلّم الـ 11 صلاحية (الـ 7 + `pages_manage_engagement` + `pages_read_user_content` + `read_insights` + `instagram_manage_comments`).
 2. **د. أحمد:** Generate Access Token ← يختار صفحة د. أحمد نبيل وحساب @dr.ahmednabil_chemistry ← يوافق.
 3. **د. أحمد:** الشيت ← إعداد النشر ← **2) ربط فيسبوك** ← يلصق التوكن، وبعده App Secret (أبّ Meta ← إعدادات التطبيق ← أساسي). لازم تطلع «التوكن دائم».
 4. Claude: الإضافات ← **ربط إنستجرام** ← لازم يطلع `@dr.ahmednabil_chemistry` وعدد المتابعين.
