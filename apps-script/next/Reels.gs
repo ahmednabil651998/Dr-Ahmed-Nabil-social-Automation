@@ -167,8 +167,8 @@ function handleReelMessage_(text) {
   if (editRow && text && text.charAt(0) !== '/') {
     var lnBefore = rtext_(editRow, RC.CAPTION);
     rcell_(editRow, RC.CAPTION).setValue(text.trim());
-    if (typeof lnLogEdit_ === 'function') lnLogEdit_('ريل', rtext_(editRow, RC.NUM), lnBefore, text.trim(), 'تيليجرام'); // Learning.gs
     props_().deleteProperty('REEL_EDIT_ROW');
+    if (typeof lnLogEdit_ === 'function') lnLogEdit_('ريل', rtext_(editRow, RC.NUM), lnBefore, text.trim(), 'تيليجرام'); // Learning.gs
     notify_('تمام، ده الريل بالكابشن المعدّل:');
     sendReelForApproval_(editRow);
     return true;

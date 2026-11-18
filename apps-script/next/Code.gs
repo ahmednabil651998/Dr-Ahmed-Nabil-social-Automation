@@ -137,7 +137,12 @@ function dailyJob() {
   var now = new Date();
   try { reelsDailyJob_(now); } catch (e) { notify_('❌ خطأ في الريلز: ' + e.message); } // Reels.gs
   try { extrasHourly_(now); } catch (e) { notify_('❌ خطأ في الإضافات: ' + e.message); } // Settings.gs
-  try { if (typeof snapshotsJob_ === 'function') snapshotsJob_(); } catch (e) { notify_('❌ خطأ في لقطات الأرقام: ' + e.message); } // Snapshots.gs
+  dailySend_(now);
+  // لقطات الأرقام بعد إرسال البوست، عشان لو أخدت وقت أو وقفت ما تأخرش البوست (Snapshots.gs)
+  try { if (typeof snapshotsJob_ === 'function') snapshotsJob_(); } catch (e) { try { notify_('❌ خطأ في لقطات الأرقام: ' + e.message); } catch (e2) {} }
+}
+
+function dailySend_(now) {
   var hour = Number(Utilities.formatDate(now, TZ, 'H')), sendHour = num_('SEND_HOUR');
   if (hour < sendHour || hour > sendHour + CATCHUP_HOURS) return;
   var today = cairoDate_(now);
@@ -294,8 +299,8 @@ function handleUpdate_(u) {
   if (editRow && text && text.charAt(0) !== '/') {
     var lnBefore = cellText_(editRow, C.CAPTION);
     cell_(editRow, C.CAPTION).setValue(ensureHashtags_(text));
-    if (typeof lnLogEdit_ === 'function') lnLogEdit_('بوست', cellText_(editRow, C.NUM), lnBefore, cellText_(editRow, C.CAPTION), 'تيليجرام'); // Learning.gs
     props_().deleteProperty('EDIT_ROW');
+    if (typeof lnLogEdit_ === 'function') lnLogEdit_('بوست', cellText_(editRow, C.NUM), lnBefore, cellText_(editRow, C.CAPTION), 'تيليجرام'); // Learning.gs
     notify_('تمام، ده الكابشن المعدّل:');
     sendForApproval_(editRow);
   } else if (text === '/post') {

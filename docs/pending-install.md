@@ -12,11 +12,14 @@
 - [ ] **Executions:** فلتر على `dailyJob` حوالي الساعة 5 العصر يوم 2026-11-17. سجّل الخطأ لو موجود في `docs/incidents.md`.
 
 ## 2) تركيب الملفات (من `apps-script/next/`)
+
+> **الخطوات النهائية والرجوع:** القسمين 7 و8 في `docs/code-review-2026-11-18.md`، وهما اللي يتمشي عليهم. اللي تحت ملخص.
+> **الإصلاح الاختياري للنشر** (`optional-publish-guards.diff`) ما يتركبش غير بموافقة د. أحمد، وفي خطوة لوحده.
 - [ ] ملف جديد `Learning` ← `apps-script/next/Learning.gs`.
 - [ ] ملف جديد `Snapshots` ← `apps-script/next/Snapshots.gs`.
 - [ ] `Code.gs` ← استبدال كامل بـ `apps-script/next/Code.gs`.
 - [ ] `Reels.gs` ← استبدال كامل بـ `apps-script/next/Reels.gs`.
-- [ ] Save ← مفيش خط أحمر، وطول كل ملف بعد Reload مطابق للريبو.
+- [ ] Save ← مفيش خط أحمر، وعدد السطور: `Code.gs` 438 و`Reels.gs` 433 و`Learning.gs` 51 و`Snapshots.gs` 159.
 - [ ] لو ظهر «Authorization required»: نفس الحل اللي في `docs/incidents.md` (2026-11-17، تركيب الإضافات).
 - **ما تركّبش** `Analytics.gs` بتاع طلب الدمج 11 (A1)، لأنه هيتعارض مع `Analytics.gs` الشغال.
 - ما تلمسش أي ملف تاني، ولا Triggers، ولا Script Properties.
