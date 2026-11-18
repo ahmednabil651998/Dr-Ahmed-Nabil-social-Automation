@@ -1,24 +1,50 @@
 # فهرس المحاضرات
 
-> بيتحدّث مع كل ترانسكريبت جديد. الموضوع الفاضي محتاج د. أحمد يكتبه (التفريغ الأوتوماتيك بيكتب المصطلحات الإنجليزي بحروف عربي، فمش بيتعرف عليها بسهولة).
+> بيتحدّث مع كل ترانسكريبت جديد. التفريغ أوتوماتيك (vidIQ / يوتيوب)، فالمصطلحات الإنجليزي مكتوبة بحروف عربي وفيها أخطاء.
+> القناة متربطة بـ vidIQ (2026-11-19)، فالـ unlisted ظاهرين.
 
-## تالتة ثانوي لغات (Chemistry)
-| التاريخ | Chapter | Lesson | الموضوع | النوع | الملف |
-|---|---|---|---|---|---|
-| 2026-09-10 | 1 | 1 | ? | حل التفوق | `3sec/2026-09-10_ch1-l1_eeq2faAOEpI.md` |
-| 2026-09-18 | 1 | 2 | ? | حل التفوق | `3sec/2026-09-18_ch1-l2_QXJpU_t0cx0.md` |
-| 2026-09-28 | 1 | 3 | ? (فيه نسبة الحديد في القشرة الأرضية والنيازك) | حل التفوق | `3sec/2026-09-28_ch1-l3_ui87nxiK9jw.md` |
-| 2026-10-07 | 1 | 4 | ? (آخر درس في Chapter 1) | حل التفوق | `3sec/2026-10-07_ch1-l4_ecG8eFAJx1M.md` |
-| 2026-10-29 | 2 | 1 | Chemical Analysis (qualitative / quantitative) | حل التفوق | `3sec/2026-10-29_ch2-l1_9jVeziWPR7I.md` |
-| 2026-11-07 | 2 | 2 | Cations (+ Anions) | حل التفوق | `3sec/2026-11-07_ch2-l2_-ajTf8GP6To.md` |
+## تالتة ثانوي لغات (Chemistry) — دفعة 2027
 
-| ? | 2 | Lecture 2 (شرح) | Detection of Anions: Conc. H₂SO₄ group (Cl⁻, Br⁻, I⁻, NO₃⁻)، BaCl₂ group (PO₄³⁻, SO₄²⁻)، Nitrite vs Nitrate | شرح | `3sec/undated_ch2-lec2-anions_b7TmBdowRqA.md` |
+### شرح
+| التاريخ | الدرس | الموضوع | الملف |
+|---|---|---|---|
+| 2026-08-29 | التأسيسية | Matter, valency, equations, types of reactions, oxidation number, quantum numbers / electronic configuration | `3sec/2026-08-29_foundation_yI4Wq_za9ss.md` |
+| 2026-09-10 | Ch1 Lesson 1 Part 1 | Periodic table, Aufbau, first transition series (abundance, uses, alloys) | `3sec/2026-09-10_ch1-l1-p1_FvvrvPFTW6k.md` |
+| 2026-09-12 | Ch1 Lesson 2 | ? | `3sec/2026-09-12_ch1-l2_7_4uiPf5ww4.md` |
+| 2026-10-06 | Ch1 Lesson 5 | ? | `3sec/2026-10-06_ch1-l5_Gy5HyAPJLe4.md` |
+| 2026-10-26 | Ch2 Lesson 1 | Chemical Analysis | `3sec/2026-10-26_ch2-l1_kkP4kLPfaxE.md` |
+| 2026-11-03 | Ch2 Lecture 2 | Detection of Anions (Conc. H₂SO₄ group, BaCl₂ group, nitrite/nitrate) | `3sec/2026-11-03_ch2-lec2-anions_b7TmBdowRqA.md` |
+| 2026-11-11 | Ch2 Lecture 3 | Detection of Cations (precipitation) — «أسهل حصة في شابتر 2» | `3sec/2026-11-11_ch2-lec3_fwYn9H3zOgw.md` |
 
-**ناقص من تالتة:** البلاي ليست «3sec - 2027» فيها 18 فيديو؛ اللي اتسحب 6 (الفيديوهات الطويلة العامة). الباقي غالبًا شرح/كلاس وورك مش ظاهر في قايمة القناة العامة — محتاج لينكاتهم.
+### حل التفوق
+| التاريخ | الدرس | الملف |
+|---|---|---|
+| 2026-09-10 | Lesson 1 | `3sec/2026-09-10_ch1-l1_eeq2faAOEpI.md` |
+| 2026-09-18 | Lesson 2 | `3sec/2026-09-18_ch1-l2_QXJpU_t0cx0.md` |
+| 2026-09-28 | Lesson 3 (نسبة الحديد في القشرة الأرضية والنيازك) | `3sec/2026-09-28_ch1-l3_ui87nxiK9jw.md` |
+| 2026-10-07 | Lesson 4 | `3sec/2026-10-07_ch1-l4_ecG8eFAJx1M.md` |
+| 2026-10-29 | Ch2 Lesson 1 | `3sec/2026-10-29_ch2-l1_9jVeziWPR7I.md` |
+| 2026-11-07 | Ch2 Lesson 2 (Cations) | `3sec/2026-11-07_ch2-l2_-ajTf8GP6To.md` |
 
-## كلام للطلبة (للأسلوب، مش للمنهج)
-- «مش عارف احل الكيمسترى» — `acFuF7OPwXw` (اتقرا، ومش متحفوظ كملف)
-- «تفاصيل الثانوية العامة لطلاب الاونلاين دفعة 2027» — `hc8MrreA8rE` (اتقرا، ومش متحفوظ كملف)
+### لسه ما اتسحبش (unlisted، مستني الكريدت يتجدد)
+| الفيديو | العنوان | المدة |
+|---|---|---|
+| `Y6jw5ZY3FA4` | Lesson 1 - part 2 | 1:17 |
+| `DZUGOAMNXjk` | Lesson 1 homework | 0:41 |
+| `N4OJVRs2JEU` | lec 4 - part 2 | 0:29 |
+| `fYvHCymSZT0` | lesson 5 part 2 | 1:15 |
+| `2MkPCn33AVI` | حل مندليف ch 1 lesson 3 | 1:43 |
+| `drVnmz_e9FM` | معسكر شابتر 1 فكرة وتطبيق | 1:30 |
+| `RiJrAYldO0E` | حل شامل شابتر 1 | 1:19 |
+| `HJ77w519yak` | Ch 2 lesson 1 part 2 | 0:50 |
+| `LMfzb34NHyQ` | Ch 2 Lesson 1 part 3 | 0:24 |
+| `BCdTTqtEphU` | حل هومورك metallic (تالتة؟ يتأكد) | 1:00 |
+| `EOl2CqbYnnQ` | Chapter 2 Lesson 2 p1 (غالبًا أول جزء من `b7TmBdowRqA`، اتسحب ومش متحفوظ) | 1:41 |
+| — | Lesson 3 و Lesson 4 شرح (part 1) مش ظاهرين في القناة | |
+
+## كلام للطلبة (للأسلوب)
+- «مش عارف احل الكيمسترى» — `acFuF7OPwXw` (اتقرا، مش متحفوظ كملف)
+- «تفاصيل الثانوية العامة لطلاب الاونلاين دفعة 2027» — `hc8MrreA8rE` (اتقرا، مش متحفوظ كملف)
 
 ## تانية ثانوي / أولى ثانوي
-لسه ما اتسحبش (مستني قرار د. أحمد: الصفحة لتالتة بس ولا للكل).
+لسه ما اتسحبش. د. أحمد قال تالتة هي الأهم (2026-11-19).

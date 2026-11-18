@@ -5,7 +5,7 @@
 
 | الصف | المادة | آخر درس اتشرح | تاريخه | الفيديو |
 |---|---|---|---|---|
-| تالتة ثانوي لغات | Chemistry | Chapter 2 – Lesson 2 (Cations) | 2026-11-07 | `-ajTf8GP6To` |
+| تالتة ثانوي لغات | Chemistry | Chapter 2 – Lecture 3 (Detection of Cations) — شرح | 2026-11-11 | `fwYn9H3zOgw` (unlisted) |
 | تانية ثانوي عام وأزهر | Chemistry | Chapter 2 – Lesson 2 (Quantum Numbers) | 2026-11-06 | `FxqggSSrAic` |
 | أولى ثانوي | Integrated Science | Lesson 10 (Ecological Balance & Aquatic Sustainability) | 2026-11-13 | `ksWnsVXidok` |
 
@@ -13,7 +13,8 @@
 ### تالتة ثانوي لغات
 - Lesson 1 → Lesson 4 (Chapter 1) — سبتمبر وأكتوبر 2026
 - Chapter 2 Lesson 1 — 2026-10-29
-- Chapter 2 Lesson 2 (Cations) — 2026-11-07
+- Chapter 2 Lecture 2 Anions (شرح) — 2026-11-03، وحل التفوق Lesson 2 — 2026-11-07
+- Chapter 2 Lecture 3 Cations (شرح) — 2026-11-11
 
 ### تانية ثانوي عام وأزهر
 - Lesson 1 The Mole، Lesson 2، Lesson 3 Limiting reactant، Lesson 4 Chemical Formula + Concentration (Chapter 1)

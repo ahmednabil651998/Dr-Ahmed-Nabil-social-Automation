@@ -4,7 +4,7 @@ grade: 3sec
 chapter: 2
 lesson: lecture 2
 topic: Anions
-date: ?
+date: 2026-11-03
 video: https://youtu.be/b7TmBdowRqA
 type: شرح
 source: vidIQ auto-captions (فيها أخطاء تفريغ، خصوصًا في المصطلحات الإنجليزي)
