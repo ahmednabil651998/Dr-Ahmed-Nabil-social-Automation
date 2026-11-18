@@ -12,6 +12,8 @@
 | 2026-10-29 | 2 | 1 | Chemical Analysis (qualitative / quantitative) | حل التفوق | `3sec/2026-10-29_ch2-l1_9jVeziWPR7I.md` |
 | 2026-11-07 | 2 | 2 | Cations (+ Anions) | حل التفوق | `3sec/2026-11-07_ch2-l2_-ajTf8GP6To.md` |
 
+| ? | 2 | Lecture 2 (شرح) | Detection of Anions: Conc. H₂SO₄ group (Cl⁻, Br⁻, I⁻, NO₃⁻)، BaCl₂ group (PO₄³⁻, SO₄²⁻)، Nitrite vs Nitrate | شرح | `3sec/undated_ch2-lec2-anions_b7TmBdowRqA.md` |
+
 **ناقص من تالتة:** البلاي ليست «3sec - 2027» فيها 18 فيديو؛ اللي اتسحب 6 (الفيديوهات الطويلة العامة). الباقي غالبًا شرح/كلاس وورك مش ظاهر في قايمة القناة العامة — محتاج لينكاتهم.
 
 ## كلام للطلبة (للأسلوب، مش للمنهج)
