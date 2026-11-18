@@ -54,6 +54,7 @@ function makeEnv(opts){
      if(url.indexOf('rupload.facebook.com')>=0)return{getContentText:()=>'{"success":true}'};
      if(url.indexOf('V1?fields=status')>=0){if(net.reelStatusThrow)throw new Error('Timeout: graph.facebook.com');return{getContentText:()=>'{"status":{}}'}}
      log.graph.push(url.split('?')[0].split('/').slice(-2).join('/'));
+     if(opts.graphFn){const g=opts.graphFn(url);if(g!==undefined)return{getContentText:()=>JSON.stringify(g)}}
      if(net.graphError)return{getContentText:()=>'{"error":{"message":"(#100) metric invalid","code":100}}'};
      if(url.indexOf('/insights')>=0){ if(net.metricError)return{getContentText:()=>'{"error":{"message":"(#100) invalid metric","code":100}}'};
        return{getContentText:()=>'{"data":[{"values":[{"value":500}]}]}'}}

@@ -1,5 +1,5 @@
 const {makeEnv}=require('./sim.js');const fs=require('fs');
-const dir=process.argv[2], files=fs.readdirSync(dir).filter(f=>f.endsWith('.gs')).map(f=>dir+'/'+f);
+const dir=process.argv[2], liveDir=process.argv[3]||dir.replace(/test$/,'live'), files=fs.readdirSync(dir).filter(f=>f.endsWith('.gs')).map(f=>dir+'/'+f);
 const H=['رقم','تاريخ','الحالة','هوك','كابشن','صورة','ملاحظات','tg','fb','ig','النوع'];
 const posts=()=>[H,['3','2026-11-17','جاهز','هوك3','كابشن 3\n\n#Dr_Ahmed_Nabil ❤️\n#ويبقي_الاثر ✨','img3'],['4','2026-11-18','جاهز','هوك4','كابشن 4','img4']];
 let pass=0,fail=0;const R=[];
@@ -176,4 +176,65 @@ check('R2 الريل اترفع والتأكيد بس اللي ما وصلش: ا
 e=makeEnv({files,reels:[RH,['1','2026-11-18','اتبعت للموافقة','t','c','x','vid']],updates:[cb('rok:2',1),cb('rok:2',2)]});
 e.ctx.YT_ENABLED=false;e.ctx.reelBlob_=()=>({getBytes:()=>[1]});e.ctx.pollTelegram();
 check('R3 "انشر" على الريل مرتين: رفع مرة واحدة',e.log.reel.filter(x=>x==='finish').length===1);
+
+// ---------- رقم فيسبوك اليدوي + الفحص اليومي ----------
+const PG='103991896132654';
+const CAP='كابشن البوست التالت فيه كلام كتير عن المذاكرة والتركيز';
+const pagePosts={data:[{id:PG+'_555',message:CAP+'\n\n#Dr_Ahmed_Nabil ❤️\n#ويبقي_الاثر ✨',created_time:'2026-11-18T15:01:00+0000',permalink_url:'https://www.facebook.com/x/posts/pfbid0ABC'},
+ {id:PG+'_444',message:'بوست تاني خالص',created_time:'2026-11-18T10:00:00+0000',permalink_url:'https://www.facebook.com/x/posts/pfbid0XYZ'}]};
+const gfn=url=>{
+  if(url.indexOf('/'+PG+'/posts')>=0||url.indexOf(PG+'/posts?')>=0)return pagePosts;
+  if(url.indexOf('page_story_id')>=0)return{page_story_id:PG+'_555'};
+  if(url.indexOf(PG+'_555?fields=id')>=0)return{id:PG+'_555',created_time:'2026-11-18T15:01:00+0000',permalink_url:'https://www.facebook.com/x/posts/pfbid0ABC'};
+  if(url.indexOf(PG+'_555?fields=created_time')>=0)return{created_time:'2026-11-18T15:01:00+0000',permalink_url:'https://www.facebook.com/x/posts/pfbid0ABC',reactions:{summary:{total_count:12}},comments:{summary:{total_count:2}},shares:{count:1}};
+  if(url.indexOf(PG+'_55500000?fields=id')>=0)return{id:PG+'_55500000',created_time:'2026-11-18T15:01:00+0000'};
+  if(url.indexOf('999_777?fields=id')>=0)return{id:'999_777'};
+  if(url.indexOf(PG+'_404?fields=id')>=0)return{error:{message:'Unsupported get request',code:100}};
+  return undefined};
+const ANH=[['المنصة','النوع','رقم','ID','الرابط','تاريخ النشر','آخر تحديث','لايكات','كومنتات','شير','مشاهدات','تفاعل']];
+const reviewRow=()=>[H,['3','2026-11-18','محتاج مراجعة','h',CAP,'img']];
+// F1 "اتنشر فعلًا" بيدوّر ويعرض زرار تأكيد، من غير ما يكتب
+e=makeEnv({files,posts:reviewRow(),graphFn:gfn,analytics:ANH.map(r=>r.slice()),now:'2026-11-18T15:30:00Z',updates:[cb('pv1:2')]});e.ctx.pollTelegram();
+let offer=(e.log.tgRaw||[]).find(p=>/لقيت 1 بوست/.test(p.text||''));
+check('F1 «اتنشر فعلًا»: لقى البوست المطابق بس وعرضه بزرار تأكيد، ومفيش رقم اتكتب لسه',st(e,2)==='اتنشر'&&!!offer&&/pid:2:103991896132654_555/.test(offer.reply_markup)&&!e.sheets.Posts.d[1][8]);
+e.ctx.handleUpdate_(cb('pid:2:'+PG+'_555',9));
+check('F2 دوسة «ده هو»: الرقم اتكتب في I، والبوست اتضاف لـ Analytics',e.sheets.Posts.d[1][8]===PG+'_555'&&e.sheets.Analytics.d.slice(1).filter(r=>r[3]===PG+'_555').length===1);
+e.ctx.handleUpdate_(cb('pid:2:'+PG+'_444',10));
+check('F3 دوسة تانية على رقم تاني: مرفوضة، والرقم الأول فضل',e.sheets.Posts.d[1][8]===PG+'_555'&&e.log.tg.some(x=>/ليه رقم فيسبوك بالفعل/.test(x)));
+e.setNow('2026-11-20T15:10:00Z');e.ctx.snapshotsJob_();
+check('F4 بعد 48 ساعة: لقطة البوست اتاخدت بالرقم اليدوي',e.sheets.Snapshots.d.slice(1).filter(r=>r[3]===PG+'_555'&&r[4]==='48 ساعة').length===1);
+// F5 ما لقاش البوست
+e=makeEnv({files,posts:[H,['3','2026-11-18','محتاج مراجعة','h','نص مش موجود','img']],graphFn:gfn,now:'2026-11-18T15:30:00Z',updates:[cb('pv1:2')]});e.ctx.pollTelegram();
+check('F5 «اتنشر فعلًا» والبوست مش لاقيه: رسالة فيها طريقة /fbid',e.log.tg.some(x=>/ما لقيتش البوست/.test(x)&&/\/fbid 3/.test(x)));
+// F6 /fbid بأشكال لينك مختلفة
+const forms=[[PG+'_555','الرقم كامل'],['55500000','رقم البوست بس'],['https://www.facebook.com/permalink.php?story_fbid=555&id='+PG,'story_fbid'],['https://www.facebook.com/photo/?fbid=888&set=a.1','لينك الصورة (fbid)'],['https://www.facebook.com/x/posts/pfbid0ABC','لينك pfbid'],['https://www.facebook.com/x/posts/555','posts/رقم']];
+for(const [f,label] of forms){
+  e=makeEnv({files,posts:[H,['3','2026-11-18','اتنشر','h',CAP,'img']],graphFn:gfn,analytics:ANH.map(r=>r.slice()),now:'2026-11-18T15:30:00Z',updates:[msg('/fbid 3 '+f)]});e.ctx.pollTelegram();
+  check('F6 /fbid ب'+label+': الرقم الصح اتكتب',e.sheets.Posts.d[1][8]===(f==='55500000'?PG+'_55500000':PG+'_555'),String(e.sheets.Posts.d[1][8]||e.log.tg.slice(-1)[0]));}
+// F7 الرفض
+const rej=[[[H,['3','2026-11-18','اتبعت للموافقة','h',CAP,'img']],'/fbid 3 '+PG+'_555','بوست لسه مستني موافقة',/بيتسجل بس لبوست حالته/],
+ [[H,['3','2026-11-18','اتنشر','h',CAP,'img','','','P_old']],'/fbid 3 '+PG+'_555','بوست ليه رقم',/بالفعل/],
+ [[H,['3','2026-11-18','اتنشر','h',CAP,'img']],'/fbid 3 999_777','بوست صفحة تانية',/مش تبع الصفحة/],
+ [[H,['3','2026-11-18','اتنشر','h',CAP,'img'],['4','2026-11-17','اتنشر','h','x','img','','',PG+'_555']],'/fbid 3 '+PG+'_555','رقم متسجل لبوست تاني',/متسجل لبوست رقم 4/],
+ [[H,['3','2026-11-18','اتنشر','h',CAP,'img']],'/fbid 3 '+PG+'_404','رقم مش موجود على فيسبوك',/ما لقاش البوست/],
+ [[H,['3','2026-11-18','اتنشر','h',CAP,'img']],'/fbid 3 كلام','كلام مش لينك',/مش عارف أطلّع/],
+ [[H,['3','2026-11-18','اتنشر','h',CAP,'img']],'/fbid 9 '+PG+'_555','رقم بوست مش موجود',/مفيش بوست رقمه 9/],
+ [[H,['3','2026-11-18','اتنشر','h',CAP,'img']],'/fbid','من غير بيانات',/اكتبها كده/]];
+for(const [rows,cmd,label,re] of rej){
+  e=makeEnv({files,posts:rows,graphFn:gfn,now:'2026-11-18T15:30:00Z',updates:[msg(cmd)]});const before=JSON.stringify(e.sheets.Posts.d);e.ctx.pollTelegram();
+  check('F7 رفض: '+label+' (مفيش أي تغيير في الشيت)',JSON.stringify(e.sheets.Posts.d)===before&&e.log.tg.some(x=>re.test(x)));}
+// F8 /fbid والبوت مستني تعديل كابشن: ما يتعاملش كتعديل
+e=makeEnv({files,posts:[H,['3','2026-11-18','اتنشر','h',CAP,'img'],['4','2026-11-18','اتبعت للموافقة','h','قديم','img']],props:{EDIT_ROW:'3'},graphFn:gfn,now:'2026-11-18T15:30:00Z',updates:[msg('/fbid 3 '+PG+'_555')]});e.ctx.pollTelegram();
+check('F8 /fbid والبوت مستني تعديل: الرقم اتسجل، والكابشن ما اتغيرش',e.sheets.Posts.d[1][8]===PG+'_555'&&e.sheets.Posts.d[2][4]==='قديم');
+// H الفحص اليومي
+const hset=[['HEALTH_ENABLED','true'],['LOW_READY_ALERT','0']];
+e=makeEnv({files,posts:[H,['3','2026-11-18','محتاج مراجعة','h','c','img'],['4','2026-11-19','جاهز','h','c','img']],settings:hset,now:'2026-11-18T08:05:00Z'});
+let hr=e.ctx.runHealth_(false);
+check('H1 الفحص اليومي: «محتاج مراجعة» بتظهر كمشكلة',hr.bad.some(x=>/محتاج مراجعة/.test(x)&&/بوست 3/.test(x))&&e.log.tg.some(x=>/محتاج مراجعة/.test(x)));
+e=makeEnv({files,posts:[H,['3','2026-11-18','اتنشر','h','c','img'],['4','2026-11-19','جاهز','h','c','img']],settings:hset,now:'2026-11-18T08:05:00Z'});hr=e.ctx.runHealth_(false);
+check('H2 الفحص اليومي: «اتنشر» من غير رقم فيسبوك بتظهر ومعاها /fbid',hr.bad.some(x=>/من غير رقم فيسبوك/.test(x)&&/\/fbid/.test(x)));
+e=makeEnv({files,posts:[H,['3','2026-11-17','اتنشر','h','c','img','','','P1'],['4','2026-11-19','جاهز','h','c','img']],settings:hset,now:'2026-11-18T08:05:00Z'});hr=e.ctx.runHealth_(false);
+const eL=makeEnv({files:fs.readdirSync(liveDir).filter(f=>f.endsWith('.gs')).map(f=>liveDir+'/'+f),posts:[H,['3','2026-11-17','اتنشر','h','c','img','','','P1'],['4','2026-11-19','جاهز','h','c','img']],settings:hset,now:'2026-11-18T08:05:00Z'});
+const hrL=eL.ctx.runHealth_(false);
+check('H3 من غير حالات جديدة: رسالة الفحص زي الكود الشغال بالظبط',hr.text===hrL.text,hr.bad.length+' مشكلة');
 console.log(R.join('\n'));console.log('\nنجح '+pass+' / فشل '+fail);

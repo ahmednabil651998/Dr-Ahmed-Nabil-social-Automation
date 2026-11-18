@@ -263,10 +263,105 @@ function handlePublishReview_(act, row, status) {
     cell_(row, C.NOTES).setValue((note ? note + '\n' : '') + 'اتنشر (اتأكد يدوي ' + cairoDate_() + '، ورقم فيسبوك مش متسجل)');
     props_().setProperty('LAST_PUBLISHED_DATE', cairoDate_());
     notify_('تمام، اتسجّل إن بوست رقم ' + cellText_(row, C.NUM) + ' اتنشر.');
+    try { offerFbIdCandidates_(row); } catch (e) { notify_(fbIdHelp_(row)); }
   } else {
     cell_(row, C.STATUS).setValue(ST.APPROVED);
     publish_(row);
   }
+}
+
+/* ---------- تسجيل رقم فيسبوك يدوي (بعد "✅ اتنشر فعلًا") ---------- */
+
+function fbIdHelp_(row) {
+  return 'عشان أرقام البوست تتسحب، ابعتلي لينكه من الصفحة كده:\n/fbid ' + cellText_(row, C.NUM) + ' اللينك';
+}
+
+// بيدوّر في آخر بوستات الصفحة (قراية بس) على بوست نصه زي الكابشن، ويعرضه بزرار تأكيد. مفيش كتابة من غير ما د. أحمد يأكد.
+function offerFbIdCandidates_(row) {
+  var head = normCap_(ensureHashtags_(cellText_(row, C.CAPTION))).substring(0, 40);
+  var list = graphGet_(PAGE_ID + '/posts?fields=id,message,created_time,permalink_url&limit=10').data || [];
+  var since = new Date().getTime() - 48 * 3600000, found = [];
+  list.forEach(function (p) {
+    if (found.length >= 3 || !p.id || !p.message) return;
+    if (new Date(p.created_time).getTime() < since) return;
+    if (head && normCap_(p.message).indexOf(head) === 0) found.push(p);
+  });
+  if (!found.length) { notify_('ما لقيتش البوست على الصفحة.\n' + fbIdHelp_(row)); return; }
+  tg_('sendMessage', { chat_id: props_().getProperty('CHAT_ID'),
+    text: 'لقيت ' + found.length + ' بوست على الصفحة نصه زي بوست رقم ' + cellText_(row, C.NUM) + '. افتح اللينك واتأكد، وبعدين دوس الزرار:\n' +
+      found.map(function (p, i) { return (i + 1) + ') ' + fbTime_(p.created_time) + '\n' + (p.permalink_url || p.id); }).join('\n') +
+      '\n\nولو مش هو: ' + fbIdHelp_(row).split('\n')[1],
+    reply_markup: JSON.stringify({ inline_keyboard: found.map(function (p, i) { return [{ text: '✅ ده هو (' + (i + 1) + ')', callback_data: 'pid:' + row + ':' + p.id }]; }) }) });
+}
+
+function normCap_(t) { return String(t || '').replace(/\s+/g, ' ').trim(); }
+
+// "/fbid 3 https://www.facebook.com/..." أو "/fbid 3 103991896132654_148..."
+function handleFbIdCommand_(text) {
+  var m = /^\/fbid\s+(\d+)\s+(\S+)/.exec(text);
+  if (!m) { notify_('اكتبها كده: /fbid رقم_البوست اللينك\nمثال: /fbid 3 https://www.facebook.com/...'); return; }
+  var s = sheet_(), row = 0;
+  for (var r = 2; r <= s.getLastRow(); r++) if (cellText_(r, C.NUM) === m[1]) { row = r; break; }
+  if (!row) { notify_('مفيش بوست رقمه ' + m[1] + ' في الشيت.'); return; }
+  setManualFbId_(row, m[2]);
+}
+
+// بيطلّع رقم البوست (PAGEID_POSTID) من لينك أو رقم. بيرجع '' لو مش عارف.
+function resolveFbPostId_(raw) {
+  var t = String(raw || '').trim(), m;
+  if (/^\d+_\d+$/.test(t)) return t;
+  if (/^\d{8,}$/.test(t)) return PAGE_ID + '_' + t;
+  if ((m = /story_fbid=(\d+)/.exec(t))) return PAGE_ID + '_' + m[1];
+  if ((m = /\/(?:posts|permalink)\/(\d+)/.exec(t))) return PAGE_ID + '_' + m[1];
+  if ((m = /[?&]fbid=(\d+)/.exec(t)) || (m = /\/photos\/[^\/]+\/(\d+)/.exec(t))) { // لينك الصورة: رقم الصورة غير رقم البوست
+    return String(graphGet_(m[1] + '?fields=page_story_id').page_story_id || '');
+  }
+  if ((m = /(pfbid\w+)/.exec(t))) { // اللينكات الجديدة: ندوّر في بوستات الصفحة على نفس اللينك
+    var list = graphGet_(PAGE_ID + '/posts?fields=id,permalink_url&limit=50').data || [];
+    for (var i = 0; i < list.length; i++) if (String(list[i].permalink_url || '').indexOf(m[1]) >= 0) return list[i].id;
+  }
+  return '';
+}
+
+// بيكتب رقم فيسبوك في عمود I بعد ما يتأكد منه. ما بيكتبش فوق رقم موجود، وما بيغيّرش الحالة.
+function setManualFbId_(row, raw) {
+  var num = cellText_(row, C.NUM);
+  if (cellText_(row, C.STATUS) !== ST.DONE) { notify_('بوست رقم ' + num + ' حالته "' + cellText_(row, C.STATUS) + '". رقم فيسبوك بيتسجل بس لبوست حالته "اتنشر".'); return; }
+  if (cellText_(row, C.FBID)) { notify_('بوست رقم ' + num + ' ليه رقم فيسبوك بالفعل: ' + cellText_(row, C.FBID) + '. ما غيّرتش حاجة.'); return; }
+  var id, j;
+  try {
+    id = resolveFbPostId_(raw);
+    if (!id) { notify_('مش عارف أطلّع رقم البوست من ده. ابعت لينك البوست من الصفحة نفسها.'); return; }
+    j = graphGet_(id + '?fields=id,created_time,permalink_url');
+  } catch (e) { notify_('فيسبوك ما لقاش البوست ده: ' + e.message); return; }
+  if (String(j.id || '').indexOf(PAGE_ID + '_') !== 0) { notify_('البوست ده مش تبع الصفحة. ما سجّلتش حاجة.'); return; }
+  var s = sheet_();
+  for (var r = 2; r <= s.getLastRow(); r++) {
+    if (r !== row && cellText_(r, C.FBID) === j.id) { notify_('الرقم ده متسجل لبوست رقم ' + cellText_(r, C.NUM) + '. ما سجّلتش حاجة.'); return; }
+  }
+  cell_(row, C.FBID).setNumberFormat('@').setValue(j.id);
+  var note = cellText_(row, C.NOTES);
+  cell_(row, C.NOTES).setValue((note ? note + '\n' : '') + 'رقم فيسبوك اتسجل يدوي ' + cairoDate_());
+  var added = false;
+  try { added = analyticsAddPost_(num, j.id); } catch (e) {}
+  notify_('✅ اتسجل رقم فيسبوك لبوست رقم ' + num + '.\n' + (j.permalink_url || ('https://www.facebook.com/' + j.id)) +
+    (added ? '\nوأرقامه اتضافت لتاب Analytics، فلقطة الـ 48 ساعة هتتاخد في ميعادها.' : '\nأرقامه هتتسحب مع سحب الأرقام الجاي.'));
+}
+
+// بيضيف صف البوست لتاب Analytics دلوقتي (نفس شكل collectAnalytics_)، عشان لقطات الأرقام ما تفوتش. لو موجود ما بيعملش حاجة.
+function analyticsAddPost_(num, postId) {
+  if (typeof fbPostStats_ !== 'function' || typeof asheet_ !== 'function') return false;
+  var a = asheet_();
+  if (!a) return false;
+  if (a.getLastRow() > 1) {
+    var ids = a.getRange(2, 1, a.getLastRow() - 1, AC.ID).getValues();
+    for (var i = 0; i < ids.length; i++) if (ids[i][0] === 'فيسبوك' && String(ids[i][AC.ID - 1]) === postId) return true;
+  }
+  var it = fbPostStats_(postId, num);
+  if (!it) return false;
+  a.appendRow([it.platform, it.kind, it.num, "'" + it.id, it.link, it.date, Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd HH:mm'),
+    it.likes, it.comments, it.shares, it.views, (Number(it.likes) || 0) + (Number(it.comments) || 0) + (Number(it.shares) || 0)]);
+  return true;
 }
 
 function publishApproved_() {
@@ -290,6 +385,7 @@ function handleUpdate_(u) {
     var parts = cq.data.split(':'), act = parts[0], row = Number(parts[1]);
     var status = cellText_(row, C.STATUS);
     if (act === 'pv1' || act === 'pv0') { handlePublishReview_(act, row, status); return; }
+    if (act === 'pid') { setManualFbId_(row, parts.slice(2).join(':')); return; } // تأكيد رقم فيسبوك من اقتراح البوت
     if (act === 'ok') {
       if (status !== ST.SENT) { notify_('البوست ده اتعالج قبل كده (' + status + ').'); return; }
       cell_(row, C.STATUS).setValue(ST.APPROVED);
@@ -321,6 +417,7 @@ function handleUpdate_(u) {
     else ideaFromText_(idea);
     return;
   }
+  if (text.indexOf('/fbid') === 0) { handleFbIdCommand_(text); return; } // تسجيل رقم فيسبوك يدوي
   if (text === '/health') { notify_(runHealth_(true).text); return; }
   if (text === '/report') { weeklyReport_(); return; }
   if (handleReelMessage_(text)) return; // رسايل الريلز (Reels.gs)
