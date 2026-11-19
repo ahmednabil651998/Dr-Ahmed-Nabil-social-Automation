@@ -290,6 +290,67 @@ test('33 Comments: postCommentReply_ رسالة الخطأ زي ما هي (fbJso
   return expect({ sameText: /❌ الرد ما اتنشرش: \(#200\) Permissions error/.test(m), hint: /pages_manage_engagement/.test(m) });
 });
 
+/* ===== 9ب) أخطاء يوتيوب في Analytics ===== */
+// رد Google بيبقى JSON منسّق على كذا سطر، وده اللي ytGet_ بتحطه في رسالة الخطأ (Reels.gs)
+function ytPretty(code, message, reason) {
+  return JSON.stringify({ error: { code: code, message: message, errors: [{ message: message, domain: 'youtube', reason: reason }] } }, null, 2);
+}
+function ytEnv(ytVideos, extraOther) {
+  var rows = donePosts(2);
+  var r1 = reel(1, addDays(-1), DONE, 'v'); r1[8] = 'https://youtube.com/shorts/VID1';
+  return env({ sheets: { Posts: rows, Reels: [REEL_H, r1], Analytics: [AN_H], Settings: postOnly() },
+    graph: function (p) { if (/insights/.test(p)) return { data: [{ values: [{ value: 9 }] }] }; return { created_time: '2026-11-01T10:00:00+0000' }; },
+    other: function (url) {
+      if (/oauth2\.googleapis\.com\/token/.test(url)) return extraOther ? extraOther(url) : { code: 200, body: { access_token: 'yt' } };
+      if (/youtube\/v3\/videos/.test(url)) return ytVideos(url);
+      return { code: 404, body: '{}' };
+    } });
+}
+test('35 يوتيوب 403 quotaExceeded (JSON على كذا سطر) ⇒ الرسالة فيها السبب الحقيقي، يتصنف حد طلبات، وفيسبوك يكمل عادي', function () {
+  var e = ytEnv(function () { return { code: 403, body: ytPretty(403, 'The request cannot be completed because you have exceeded your quota.', 'quotaExceeded') }; });
+  var n = e.ctx.collectAnalytics_();
+  var m = notifs(e)[0] || '';
+  return expect({ fbCounted: n === 2, oneMsg: notifs(e).length === 1, hasReason: /quotaExceeded/.test(m), hasText: /exceeded your quota/.test(m),
+    notTruncated: !/يوتيوب: \{\s*$/m.test(m), classifiedRate: /يوتيوب: وقفنا الطلبات بدري \(وصلنا لحد الطلبات\)/.test(m) });
+});
+test('36 يوتيوب 401 (JSON على كذا سطر) ⇒ يتصنف توكن، مع رسالة واضحة', function () {
+  var e = ytEnv(function () { return { code: 401, body: ytPretty(401, 'Request had invalid authentication credentials.', 'authError') }; });
+  e.ctx.collectAnalytics_();
+  var m = notifs(e)[0] || '';
+  return expect({ token: /يوتيوب: وقفنا الطلبات بدري \(التوكن انتهى أو اتلغى\)/.test(m), text: /invalid authentication credentials/.test(m), hint: /youtube-status\.md/.test(m) });
+});
+test('37 يوتيوب 403 forbidden (صلاحية) ⇒ يتصنف ناقص صلاحية', function () {
+  var e = ytEnv(function () { return { code: 403, body: ytPretty(403, 'Insufficient Permission', 'insufficientPermissions') }; });
+  e.ctx.collectAnalytics_();
+  var m = notifs(e)[0] || '';
+  return expect({ perm: /يوتيوب: وقفنا الطلبات بدري \(التوكن ناقصه صلاحية\)/.test(m), reason: /insufficientPermissions/.test(m) });
+});
+test('38 يوتيوب 500 ⇒ عنصر فاشل برسالة مفهومة (مش "يوتيوب: {")', function () {
+  var e = ytEnv(function () { return { code: 500, body: ytPretty(500, 'Backend Error', 'backendError') }; });
+  e.ctx.collectAnalytics_();
+  var m = notifs(e)[0] || '';
+  return expect({ listed: /عناصر ما اتحدّثتش/.test(m), text: /Backend Error/.test(m), notTruncated: !/يوتيوب: \{\s*$/m.test(m) });
+});
+test('39 توكن يوتيوب invalid_grant ⇒ يتصنف توكن زي الأول', function () {
+  var e = ytEnv(function () { return { code: 200, body: { items: [] } }; },
+    function () { return { code: 400, body: { error: 'invalid_grant', error_description: 'Token has been expired or revoked.' } }; });
+  e.ctx.collectAnalytics_();
+  var m = notifs(e)[0] || '';
+  return expect({ token: /التوكن انتهى أو اتلغى/.test(m), text: /expired or revoked/.test(m) });
+});
+test('40 يوتيوب نجح ⇒ يتحسب ومفيش رسايل', function () {
+  var e = ytEnv(function () { return { code: 200, body: { items: [{ id: 'VID1', statistics: { likeCount: '3', commentCount: '1', viewCount: '50' }, snippet: { publishedAt: '2026-11-01T10:00:00Z' } }] } }; });
+  var n = e.ctx.collectAnalytics_();
+  return expect({ n3: n === 3, noMsg: notifs(e).length === 0 });
+});
+test('41 رسالة خطأ Meta في الملخص زي ما هي (أول سطر بس، من غير ما تتغير)', function () {
+  var e = env({ sheets: { Posts: donePosts(1), Analytics: [AN_H], Settings: postOnly() },
+    graph: function () { return { error: { message: 'Unsupported get request. Object with ID FBP1 does not exist', code: 100 } }; } });
+  e.ctx.collectAnalytics_();
+  var m = notifs(e)[0] || '';
+  return expect({ same: /فيسبوك بوست 1: Unsupported get request\. Object with ID FBP1 does not exist/.test(m) });
+});
+
 /* ===== 11) Health / Web ===== */
 test('34 Health و Web بيشتغلوا، والبوست الموقوف مايتحسبش جاهز', function () {
   var e = env({ sheets: { Posts: [POST_H, post(1, addDays(-1), READY, 'BAD'), post(2, addDays(1), READY, 'i'), post(3, '', READY, 'i')], Reels: [REEL_H], Analytics: [AN_H], Settings: postOnly() }, files: { i: {} },
