@@ -7,7 +7,7 @@
  */
 
 var REELS_SHEET = 'Reels';
-var REEL_SEND_HOUR = 19; // الساعة اللي بيتبعت فيها ريل النهارده للموافقة (7 بالليل بتوقيت القاهرة)
+var REEL_SEND_HOUR = 19; // القيمة الافتراضية. الساعة الفعلية من تاب Settings (REEL_SEND_HOUR) لو موجود
 var REEL_TAGS = '#ثانوية_عامة #كيمياء_تالتة_ثانوي #Dr_Ahmed_Nabil';
 var YT_ENABLED = true; // شغال: الرفع بتوكن 998 اتجرب ونجح 2026-11-16 (شوف docs/youtube-status.md)
 var YT_CHANNEL_TITLE = 'Dr Ahmed Nabil - Chemistry'; // القناة اللي لازم يتنشر عليها
@@ -15,9 +15,9 @@ var YT_CATEGORY = '27'; // Education
 var REEL_MAX_BYTES = 50 * 1024 * 1024; // حد Apps Script وحد إرسال الفيديو من بوت Telegram
 
 // أعمدة تاب Reels
-var RC = { NUM: 1, DATE: 2, STATUS: 3, TITLE: 4, CAPTION: 5, TOPIC: 6, VIDEO: 7, FB: 8, YT: 9, NOTES: 10, TGMSG: 11 };
+var RC = { NUM: 1, DATE: 2, STATUS: 3, TITLE: 4, CAPTION: 5, TOPIC: 6, VIDEO: 7, FB: 8, YT: 9, NOTES: 10, TGMSG: 11, IG: 12, REQ: 13 };
 var RST = { READY: 'جاهز', SENT: 'اتبعت للموافقة', APPROVED: 'تمت الموافقة', DONE: 'اتنشر', FAILED: 'فشل جزئي' };
-var REEL_HEADERS = ['رقم', 'التاريخ', 'الحالة', 'العنوان', 'الكابشن', 'هاشتاج الموضوع', 'ID ملف الفيديو', 'رابط فيسبوك', 'رابط يوتيوب', 'ملاحظات', 'رسالة تيليجرام'];
+var REEL_HEADERS = ['رقم', 'التاريخ', 'الحالة', 'العنوان', 'الكابشن', 'هاشتاج الموضوع', 'ID ملف الفيديو', 'رابط فيسبوك', 'رابط يوتيوب', 'ملاحظات', 'رسالة تيليجرام', 'رابط إنستجرام', 'الطلب لـ Claude'];
 
 /* ---------- تجهيز التاب ---------- */
 
@@ -78,7 +78,7 @@ function reelBlob_(row) {
 // بتتنده من dailyJob في Code.gs كل ساعة
 function reelsDailyJob_(now) {
   if (!rsheet_()) return;
-  if (Number(Utilities.formatDate(now, TZ, 'H')) !== REEL_SEND_HOUR) return;
+  if (Number(Utilities.formatDate(now, TZ, 'H')) !== num_('REEL_SEND_HOUR')) return;
   var today = cairoDate_(now);
   if (props_().getProperty('LAST_REEL_DATE') === today) return;
   if (sendNextReel_(today)) props_().setProperty('LAST_REEL_DATE', today);
@@ -148,6 +148,10 @@ function handleReelCallback_(data) {
     if (status !== RST.FAILED) { notify_('الريل ده مش محتاج إعادة (' + status + ').'); return; }
     notify_('🔁 بعيد المحاولة على المنصة اللي فشلت بس...');
     publishReel_(row);
+  } else if (act === 'rdy') {
+    if (status !== RST_DRAFT) { notify_('الريل ده مش مسودة (' + status + ').'); return; }
+    rcell_(row, RC.STATUS).setValue(RST.READY);
+    notify_('✅ الريل رقم ' + rtext_(row, RC.NUM) + ' بقى "جاهز"، وهيتبعتلك للموافقة يوم ' + rtext_(row, RC.DATE) + '.');
   } else if (act === 'rsk') {
     var d = new Date(rtext_(row, RC.DATE) + 'T12:00:00Z');
     d.setUTCDate(d.getUTCDate() + 1);
@@ -165,6 +169,13 @@ function handleReelMessage_(text) {
     props_().deleteProperty('REEL_EDIT_ROW');
     notify_('تمام، ده الريل بالكابشن المعدّل:');
     sendReelForApproval_(editRow);
+    return true;
+  }
+  var retry = /^\/retry(\d+)$/.exec(text);
+  if (retry) {
+    var rr = Number(retry[1]);
+    if (rtext_(rr, RC.STATUS) !== RST.FAILED) notify_('الريل ده مش محتاج إعادة (' + rtext_(rr, RC.STATUS) + ').');
+    else { notify_('🔁 بعيد المحاولة على المنصة اللي فشلت بس...'); publishReel_(rr); }
     return true;
   }
   if (text === '/reel') {
@@ -221,6 +232,18 @@ function publishReel_(row) {
     }
   }
 
+  if (on_('IG_REELS_ENABLED') && !rtext_(row, RC.IG)) {
+    try {
+      var igLink = igPublishReel_(row, 'REELS'); // Instagram.gs
+      rcell_(row, RC.IG).setValue(igLink);
+      if (igLink.indexOf('pending:') === 0) notify_('⏳ إنستجرام لسه بيعالج الريل، هيتنشر لوحده خلال دقايق ويوصلك إشعار.');
+      else notify_('✅ إنستجرام: الريل اتنشر.\n' + igLink);
+    } catch (e) {
+      failed.push('إنستجرام: ' + e.message);
+      notify_('❌ إنستجرام: الريل فشل.\n' + e.message);
+    }
+  }
+
   if (failed.length) {
     rcell_(row, RC.STATUS).setValue(RST.FAILED);
     rcell_(row, RC.NOTES).setValue(failed.join('\n'));
@@ -228,8 +251,14 @@ function publishReel_(row) {
       text: 'لما تصلّح المشكلة دوس الزرار ده، وهيعيد المنصة اللي فشلت بس:',
       reply_markup: JSON.stringify({ inline_keyboard: [[{ text: '🔁 أعد المحاولة', callback_data: 'rre:' + row }]] }) });
   } else {
+    var wasDone = rtext_(row, RC.STATUS) === RST.DONE;
     rcell_(row, RC.STATUS).setValue(RST.DONE);
     rcell_(row, RC.NOTES).setValue('');
+    if (!wasDone) {
+      // إضافات بعد النشر الناجح (كل واحدة مقفولة لحد ما تفعّلها من Settings)
+      if (on_('IG_STORY_REELS')) { try { notify_(igPublishReel_(row, 'STORIES').indexOf('pending:') === 0 ? '⚠️ ستوري إنستجرام لسه بتتعالج ومش هتتنشر. جرّب ريل أقصر.' : '✅ إنستجرام: الستوري اتنشرت.'); } catch (e) { notify_('⚠️ ستوري إنستجرام: ' + e.message); } }
+      if (on_('TIKTOK_HELPER')) { try { tiktokHelper_(row); } catch (e) { notify_('⚠️ تيك توك: ' + e.message); } }
+    }
   }
 }
 

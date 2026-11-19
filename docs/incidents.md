@@ -87,3 +87,21 @@
 - الصفحة ما فوّتتش اليوم: بوست 2 (اتبعت يوم 16) اتنشر يوم 17 بعد ما مهمة Claude الساعة 6:07 عرضته.
 - الحل: محاولة متأخرة مرة واحدة في اليوم من الساعة 6 لحد 9 بالليل (`apps-script/next/Code.gs`)، ولسه ما اتركبتش.
 - تصحيح: تاب Analytics فاضي عشان أول تشغيل لسحب الأرقام هو 3 الفجر يوم 18، مش عشان عطل.
+
+## 2026-11-17 — كود الإضافات (فرع feature/system-upgrade)
+
+- اتكتب كود 23 تحسين (`docs/roadmap.md`) في ملفات منفصلة. تعديلات `Code.gs` و`Reels.gs` صغيرة: أعمدة جديدة (Posts: إنستجرام 10، النوع 11 | Reels: إنستجرام 12)، المواعيد بقت من تاب Settings، ونداءات للإضافات.
+- كل ميزة مقفولة افتراضيًا، فبعد التركيب السيستم بيشتغل زي ما هو لحد ما تفعّل حاجة من `Settings`.
+- الكود ما اتجربش على Apps Script لسه (اتفحص syntax بس). التفعيل خطوة بخطوة في `docs/rollout.md`.
+- تعديل نفس اليوم: الكتابة بقت لـ **Claude** (مهمة مجدولة "كاتب محتوى الصفحة" من الاشتراك، مش API مدفوع)، وGemini بقى للسمع وردود الكومنتات بس. اتضاف `Image.gs`: خلفية من Cloudflare Workers AI (FLUX.1 schnell، حد مجاني) + الهوك بالعربي من قالب Google Slides. حالات جديدة في Posts و Reels: `اكتبها` ← `اتكتبت` ← `فكرة`/`مسودة`. أعمدة جديدة: Posts L (الطلب لـ Claude) و M (برومبت الصورة)، Reels M (الطلب لـ Claude). الشرط: كله ببلاش.
+
+## 2026-11-17 — تركيب الإضافات في Apps Script
+
+- اتركبوا من المتصفح المدمج (`monaco.editor.getModels()...setValue` + Ctrl+S): 9 ملفات جديدة (Settings, Health, Instagram, AI, Analytics, Comments, Web, Team, Image) وتحديث Code.gs و Reels.gs. طول كل ملف اتقارن بالريبو بعد Reload وطابق.
+- الملفات الجديدة اتركبت **قبل** تحديث Code.gs عشان التريجرز ما تنادي دوال مش موجودة. pollTelegram فضل شغال كل دقيقة من غير أخطاء.
+- ضغطة بالغلط على Run شغّلت `setupExtras` قبل الأوان ووقفت عند C.REQ — عملت التابات بس، من غير ضرر. بعدها اتشغلت كاملة.
+- **الصلاحيات:** شاشة "Authorization required" في الشيت بتفتح popup والمتصفح المدمج بيمنعه. الحل اللي نجح: ملف مؤقت فيه `ScriptApp.getAuthorizationInfo(ScriptApp.AuthMode.FULL).getAuthorizationUrl()`، نشغله من المحرر، ونفتح الرابط في نفس التاب ← Advanced ← Go to (unsafe) ← Select all ← Continue. الحالة بقت NOT_REQUIRED، والملف المؤقت اتمسح.
+- الفحص الشامل: فيسبوك ويوتيوب وتيليجرام شغالين، 4 بوستات جاهزة.
+- اتفعّل في Settings: `HEALTH_ENABLED`, `CLAUDE_WRITER_ENABLED`, `ANALYTICS_ENABLED`, `REPORT_ENABLED`.
+- لسه: `GEMINI_API_KEY`، `CF_ACCOUNT_ID` + `CF_API_TOKEN` + "اعمل قالب الصورة"، توكن فيسبوك جديد بصلاحيات إنستجرام والكومنتات.
+- الكود ده (فرع `feature/system-upgrade`) هو اللي شغال فعليًا دلوقتي في Apps Script، فلازم الـ PR يتعمل له merge في main.

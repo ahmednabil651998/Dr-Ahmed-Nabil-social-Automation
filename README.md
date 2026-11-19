@@ -12,7 +12,12 @@
 - `docs/seasonal-calendar.md` — التقويم الموسمي للثانوية العامة 2026/2027 (المرحلة D): المواعيد، والعد التنازلي، ونوع البوست المناسب لكل موسم. مسودة مستنية مراجعة د. أحمد
 - `docs/similar-repos.md` — ريبوهات شبه شغلنا على GitHub، والأفكار اللي ممكن ناخدها منها مرتّبة
 - `docs/post-ideas-playbook.md` — دليل أفكار البوستات: الأنواع، الشكل المتكرر، إزاي نبني فكرة جديدة، وسجل الأفكار. وروتين إضافة فكرة جديدة في `instructions/idea-intake.md`
-- `apps-script/` — نسخة من كود Google Apps Script الفعلي (Code.gs، و Reels.gs للريلز) المركّب على المشروع المربوط بالجدول، كنسخة احتياطية/مرجعية. مفيهوش أي توكنز أو أسرار؛ دي بتتخزن في Script Properties جوه Apps Script نفسه فقط
+- `apps-script/` — كود Google Apps Script: `Code.gs` (البوست اليومي)، `Reels.gs` (الريلز)، وملفات الإضافات: `Settings.gs`، `Health.gs`، `Instagram.gs`، `AI.gs`، `Analytics.gs`، `Comments.gs`، `Web.gs`، `Team.gs`. مفيهوش أي توكنز أو أسرار؛ دي بتتخزن في Script Properties جوه Apps Script نفسه فقط
+- `cloudflare/` — Worker مجاني بيوصّل رسايل تيليجرام لحظيًا (webhook)
+- `.github/workflows/` — رفع الكود على Apps Script بـ clasp (يدوي)
+- `docs/roadmap.md` — خطة التطوير الكاملة (23 بند) وحالة كل بند
+- `docs/rollout.md` — خطوات تفعيل الإضافات بالترتيب، و `docs/deploy.md` — رفع الكود من الريبو
+- `prompts/claude-writer-task.md` — تعليمات مهمة Claude المجدولة "كاتب محتوى الصفحة" (10:43 الصبح و 8:43 بالليل): Claude بيكتب البوستات والريلز اللي حالتها "اكتبها"
 
 ## السياق الحالي
 
@@ -39,5 +44,9 @@
 - [ ] داش بورد متابعة (Cloudflare) — اتلغت؛ مش محتاجينها (`docs/intelligence-plan.md`)
 - [ ] التعلم من الأرقام والإلهام (Content Intelligence) — الخطة في `docs/intelligence-plan.md`. A1 اتلغت (طلب الدمج 10 فيه سحب الأرقام). A2 (لقطات 48 ساعة و7 أيام) في `apps-script/next/Snapshots.gs` مستنية التركيب. A3 + C في مهمة «مراجعة الأسبوع» (محتاجة Google Sheets connector يتضاف لها)
 - [ ] طلب الدمج رقم 10 (23 إضافة) — ⚠️ اتقال إنه مش هيتدمج، لكن الكود بتاعه **متركّب فعلًا** في Apps Script من 2026-11-17 (التابات Settings و Analytics و Comments و Templates موجودة في الشيت، وفرع `feature/system-upgrade` فيه سجل التركيب). يعني `apps-script/` في main قديم. محتاجين قرار: يتدمج ولا يترجع
+
+- [ ] ريلز تيك توك — الكود نص-أوتوماتيك جاهز (`TIKTOK_HELPER`)، والأوتوماتيك الكامل بعد مراجعة تيك توك
+- [x] الإضافات الجديدة اتركبت في Apps Script (2026-11-17) والصلاحيات اتوافق عليها (Drive + Slides). **متفعّل:** الفحص اليومي، الأرقام، التقرير الأسبوعي، وكتابة Claude (مهمة "كاتب محتوى الصفحة" 10:43 الصبح و 8:43 بالليل). التوزيع: Gemini يسمع، Claude يكتب، Cloudflare FLUX يرسم، قالب Slides يكتب الهوك — كله ببلاش
+- [ ] لسه: مفتاح Gemini (`AI_ENABLED`)، Cloudflare + قالب الصورة (`IMAGES_ENABLED`)، توكن فيسبوك بصلاحيات إنستجرام والكومنتات، الـ webhook والداش بورد، الفريق. الخطوات في `docs/rollout.md`
 
 راجع `docs/incidents.md` لسجل الأعطال والملاحظات.
