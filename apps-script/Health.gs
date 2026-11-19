@@ -77,14 +77,23 @@ function runHealth_(manual) {
   var s = sheet_(), readyPosts = 0, stuck = [];
   for (var r = 2; r <= s.getLastRow(); r++) {
     var st = cellText_(r, C.STATUS), d = cellText_(r, C.DATE);
-    if (st === ST.READY) readyPosts++;
+    // البوست الموقوف (بيانات بايظة) أو اللي تاريخه فاضي/غلط مش هيتبعت، فمابيتحسبش جاهز
+    if (st === ST.READY) {
+      if (postBlocked_(r)) stuck.push('بوست ' + cellText_(r, C.NUM) + ' (موقوف: بيانات بايظة، شوف الملاحظات)');
+      else if (!validDate_(d)) stuck.push('بوست ' + cellText_(r, C.NUM) + ' (جاهز بس التاريخ فاضي أو مش yyyy-MM-dd)');
+      else readyPosts++;
+    }
     if ((st === ST.SENT || st === ST.APPROVED) && d && d < today && daysAgo_(d) >= 2) stuck.push('بوست ' + cellText_(r, C.NUM) + ' (' + st + ')');
   }
   var readyReels = 0, rs = rsheet_();
   if (rs) {
     for (var q = 2; q <= rs.getLastRow(); q++) {
       var rst = rtext_(q, RC.STATUS);
-      if (rst === RST.READY) readyReels++;
+      if (rst === RST.READY) {
+        if (reelBlocked_(q)) stuck.push('ريل ' + rtext_(q, RC.NUM) + ' (موقوف: بيانات بايظة، شوف الملاحظات)');
+        else if (!validDate_(rtext_(q, RC.DATE))) stuck.push('ريل ' + rtext_(q, RC.NUM) + ' (جاهز بس التاريخ فاضي أو مش yyyy-MM-dd)');
+        else readyReels++;
+      }
       if (rst === RST.FAILED) stuck.push('ريل ' + rtext_(q, RC.NUM) + ' (فشل جزئي)');
       if (rst === RST.SENT && daysAgo_(rtext_(q, RC.DATE)) >= 2) stuck.push('ريل ' + rtext_(q, RC.NUM) + ' (' + rst + ')');
     }
