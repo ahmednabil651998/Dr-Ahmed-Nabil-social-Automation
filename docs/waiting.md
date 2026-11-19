@@ -76,3 +76,9 @@
 - [ ] الفريق: `APPROVER_EMAILS` (لو Claude بيوافق من حساب 998) + إضافة مريم.
 - [x] **كومنتات كل بوستات الصفحة + كومنتات إنستجرام** — فرع `feat/comments-all-and-instagram` اتدمج في `main`، و`Comments.gs` (142) و`Settings.gs` (174) اتركّبوا في Apps Script 2026-11-19.
 - [ ] تيك توك أوتوماتيك — محتاج مراجعة تيك توك للأبّ؛ لحد كده نص-أوتوماتيك (`TIKTOK_HELPER`).
+
+## 🆕 2026-11-19 بالليل
+- [ ] **كومنتات يوتيوب** — الكود اتكتب في `apps-script/Comments.gs` (اتجرّب على محاكي): بيجيب كومنتات كل فيديوهات القناة آخر `COMMENTS_DAYS` يوم بتوكن حساب 998، ونفس زراير تيليجرام. مفتاح جديد `YT_COMMENTS_ENABLED`. **فاضل:** تركيب `Comments.gs` و`Settings.gs` في Apps Script، وتشغيل `ytCommentsTest`، وتجربة أول رد (لو قال youtube.force-ssl: موافقة جديدة من OAuth Playground بحساب 998 بالـ scope ده كمان).
+- [ ] **تيك توك** — بنبدأ: د. أحمد يعمل حساب مطوّر + أبّ على developers.tiktok.com ويطلب Content Posting API (المراجعة بتاخد أيام/أسابيع). لحد كده `TIKTOK_HELPER`.
+- [ ] **المحاضرات** — د. أحمد **وافق** على طريقة كروم (تنزيل ملفات الترانسكريبت). نبدأ من 2026-11-20: أولى ثانوي (9 فيديوهات) + الناقص من تالتة.
+- [ ] مهمة «مراجعة الأسبوع» مالهاش Google Sheets connector، ونص مهمة «بوست الصفحة اليومي» محتاج يتحدّث (`docs/claude-tasks-update.md`) — Claude يقدر يعملهم من Claude Code (RemoteTrigger) بموافقة د. أحمد.

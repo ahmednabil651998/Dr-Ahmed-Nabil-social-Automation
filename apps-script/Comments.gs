@@ -10,7 +10,7 @@
  */
 
 var CMC = { ID: 1, POST: 2, NAME: 3, TEXT: 4, DATE: 5, REPLY: 6, STATUS: 7, TGMSG: 8, PLATFORM: 9 };
-var CM_FB = 'فيسبوك', CM_IG = 'إنستجرام';
+var CM_FB = 'فيسبوك', CM_IG = 'إنستجرام', CM_YT = 'يوتيوب';
 var CMS = { NEW: 'جديد', SENT: 'اتبعت', DONE: 'اترد', SKIP: 'اتجاهل' };
 
 function csheet_() { return SpreadsheetApp.getActive().getSheetByName('Comments'); }
@@ -34,6 +34,7 @@ function commentsJob_() {
     });
   });
   if (on_('IG_COMMENTS_ENABLED')) igNewComments_(days, known).forEach(function (r) { fresh.push(r); });
+  if (on_('YT_COMMENTS_ENABLED')) ytNewComments_(days, known).forEach(function (r) { fresh.push(r); });
   if (fresh.length) c.getRange(c.getLastRow() + 1, 1, fresh.length, 9).setValues(fresh);
 
   // نبعت أقدم الكومنتات الجديدة الأول، بحد أقصى كل ساعة
@@ -129,14 +130,64 @@ function handleCommentMessage_(text) {
 function postCommentReply_(row, msg) {
   var c = csheet_();
   if (!msg) { notify_('مفيش رد. دوس "✏️ اكتب رد".'); return; }
-  var ig = String(c.getRange(row, CMC.PLATFORM).getValue()) === CM_IG;
+  var plat = String(c.getRange(row, CMC.PLATFORM).getValue()) || CM_FB, ig = plat === CM_IG, yt = plat === CM_YT;
   try {
-    fbJson_(UrlFetchApp.fetch(GRAPH + c.getRange(row, CMC.ID).getValue() + (ig ? '/replies' : '/comments'), {
+    if (yt) ytReply_(String(c.getRange(row, CMC.ID).getValue()), msg);
+    else fbJson_(UrlFetchApp.fetch(GRAPH + c.getRange(row, CMC.ID).getValue() + (ig ? '/replies' : '/comments'), {
       method: 'post', payload: { message: msg, access_token: props_().getProperty('FB_PAGE_TOKEN') }, muteHttpExceptions: true
     }));
     c.getRange(row, CMC.STATUS).setValue(CMS.DONE);
-    notify_('✅ الرد اتنشر على ' + (ig ? CM_IG : CM_FB) + '.');
+    notify_('✅ الرد اتنشر على ' + plat + '.');
   } catch (e) {
-    notify_('❌ الرد ما اتنشرش: ' + e.message + (/permission/i.test(e.message) ? '\nالتوكن محتاج صلاحية ' + (ig ? 'instagram_manage_comments' : 'pages_manage_engagement') + ' (شوف docs/rollout.md).' : ''));
+    var hint = yt ? 'توكن يوتيوب محتاج صلاحية youtube.force-ssl: موافقة جديدة من OAuth Playground بحساب 998 وحدّث YT_REFRESH_TOKEN (شوف docs/youtube-status.md).'
+                  : 'التوكن محتاج صلاحية ' + (ig ? 'instagram_manage_comments' : 'pages_manage_engagement') + ' (شوف docs/rollout.md).';
+    notify_('❌ الرد ما اتنشرش: ' + e.message + (/permission|insufficient|forbidden|scope/i.test(e.message) ? '\n' + hint : ''));
   }
+}
+
+/* ---------- يوتيوب (بتوكن حساب 998 بتاع Reels.gs) ---------- */
+
+// كومنتات يوتيوب الجديدة على كل فيديوهات القناة في آخر days يوم
+function ytNewComments_(days, known) {
+  var out = [], ch = ytChannelId_();
+  if (!ch) return out;
+  var r = UrlFetchApp.fetch('https://www.googleapis.com/youtube/v3/commentThreads?part=snippet&order=time&maxResults=50&textFormat=plainText&allThreadsRelatedToChannelId=' + ch,
+    { headers: { Authorization: 'Bearer ' + ytToken_() }, muteHttpExceptions: true });
+  if (r.getResponseCode() !== 200) { notify_('⚠️ كومنتات يوتيوب: ' + r.getContentText().substring(0, 300)); return out; }
+  (JSON.parse(r.getContentText()).items || []).forEach(function (t) {
+    var top = t.snippet && t.snippet.topLevelComment, sn = top && top.snippet;
+    if (!sn || known[top.id] || !sn.textOriginal) return;
+    if (sn.authorChannelId && sn.authorChannelId.value === ch) return; // كومنتات القناة نفسها
+    if (daysAgo_(String(sn.publishedAt || '').substring(0, 10)) > days) return;
+    known[top.id] = 1;
+    out.push([top.id, sn.videoId || t.snippet.videoId || '', sn.authorDisplayName || '', sn.textOriginal, fbTime_(sn.publishedAt), '', CMS.NEW, '', CM_YT]);
+  });
+  return out;
+}
+
+function ytChannelId_() {
+  var p = props_(), id = p.getProperty('YT_CHANNEL_ID');
+  if (id) return id;
+  var r = UrlFetchApp.fetch('https://www.googleapis.com/youtube/v3/channels?part=id&mine=true',
+    { headers: { Authorization: 'Bearer ' + ytToken_() }, muteHttpExceptions: true });
+  var it = (JSON.parse(r.getContentText()).items || [])[0];
+  if (!it) { notify_('⚠️ كومنتات يوتيوب: مش لاقي قناة لتوكن يوتيوب.'); return ''; }
+  p.setProperty('YT_CHANNEL_ID', it.id);
+  return it.id;
+}
+
+// الرد على كومنت يوتيوب (parentId = ID الكومنت الأساسي)
+function ytReply_(parentId, msg) {
+  var r = UrlFetchApp.fetch('https://www.googleapis.com/youtube/v3/comments?part=snippet', {
+    method: 'post', contentType: 'application/json', muteHttpExceptions: true,
+    headers: { Authorization: 'Bearer ' + ytToken_() },
+    payload: JSON.stringify({ snippet: { parentId: parentId, textOriginal: msg } })
+  });
+  if (r.getResponseCode() !== 200) throw new Error('يوتيوب (' + r.getResponseCode() + '): ' + r.getContentText().substring(0, 300));
+}
+
+// تجربة من المحرر: بتجيب كومنتات يوتيوب آخر 14 يوم وتقولك عددها من غير ما تكتب حاجة
+function ytCommentsTest() {
+  var n = ytNewComments_(14, {});
+  notify_('🎬 تجربة كومنتات يوتيوب: لقيت ' + n.length + ' كومنت في آخر 14 يوم' + (n[0] ? '\nأولهم: "' + String(n[0][3]).substring(0, 80) + '"' : '') + '.');
 }

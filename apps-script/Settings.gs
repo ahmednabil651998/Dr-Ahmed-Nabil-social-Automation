@@ -40,6 +40,7 @@ var SETTINGS_LIST = [
   ['COMMENTS_PER_RUN', '5', 'أقصى عدد كومنتات تتبعت لك كل ساعة'],
   ['COMMENTS_SCOPE', 'all', 'all = كومنتات كل بوستات الصفحة (حتى اليدوية)، system = اللي النظام نشره بس'],
   ['IG_COMMENTS_ENABLED', 'false', 'كمان كومنتات إنستجرام (محتاج صلاحية instagram_manage_comments)'],
+  ['YT_COMMENTS_ENABLED', 'false', 'كمان كومنتات يوتيوب (بتوكن حساب 998؛ الرد محتاج صلاحية youtube.force-ssl)'],
   ['IDEAS_FROM_COMMENTS', 'false', 'كل جمعة: مهمة Claude تطلّع من كومنتات الأسبوع الأسئلة المتكررة وتكتب منها أفكار بوستات']
 ];
 
