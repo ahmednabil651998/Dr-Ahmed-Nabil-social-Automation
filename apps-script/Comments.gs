@@ -91,8 +91,7 @@ function sendCommentForApproval_(row) {
   var reply = String(v[CMC.REPLY - 1] || '');
   if (!reply && on_('AI_ENABLED')) {
     reply = safe_(function () {
-      return ai_([{ text: BRAND_VOICE + '\n\nده كومنت من طالب على بوست في الصفحة:\n"' + v[CMC.TEXT - 1] + '"\n' +
-        'اكتب رد قصير (سطر أو اتنين) بالعامية المصرية باسم د. أحمد: دافي ومشجّع. لو سؤال كيمياء جاوب باختصار وبدقة، ولو مش متأكد قوله يسأل في الحصة. رجّع الرد بس من غير أي شرح.' }], false);
+      return ai_([{ text: replyPrompt_(String(v[CMC.TEXT - 1]), String(v[CMC.PLATFORM - 1] || CM_FB)) }], false);
     });
     if (reply) c.getRange(row, CMC.REPLY).setValue(reply);
   }
@@ -193,4 +192,61 @@ function ytReply_(parentId, msg) {
 function ytCommentsTest() {
   var n = ytNewComments_(14, {});
   notify_('🎬 تجربة كومنتات يوتيوب: لقيت ' + n.length + ' كومنت في آخر 14 يوم' + (n[0] ? '\nأولهم: "' + String(n[0][3]).substring(0, 80) + '"' : '') + '.');
+}
+
+/* ---------- أسلوب الرد: نتعلم من ردود د. أحمد الحقيقية على القناة والصفحة ---------- */
+
+function replyPrompt_(comment, platform) {
+  var ex = safe_(function () { return replyExamples_(); }) || [];
+  if (!ex.length) {
+    return BRAND_VOICE + '\n\nده كومنت من طالب على ' + platform + ':\n"' + comment + '"\n' +
+      'اكتب رد قصير (سطر أو اتنين) بالعامية المصرية باسم د. أحمد: دافي ومشجّع. لو سؤال كيمياء جاوب باختصار وبدقة، ولو مش متأكد قوله يسأل في الحصة. رجّع الرد بس من غير أي شرح.';
+  }
+  var shots = ex.map(function (e, i) { return (i + 1) + ') كومنت: "' + e.q + '"\n   رد د. أحمد: "' + e.a + '"'; }).join('\n');
+  return 'إنت بتكتب ردود باسم د. أحمد نبيل (مدرس كيمياء) على كومنتات طلبته. دي ردوده الحقيقية اللي كتبها بنفسه قبل كده:\n\n' + shots +
+    '\n\nقلّد أسلوبه في الأمثلة دي بالظبط: نفس الطول تقريبًا، نفس الكلمات والتعبيرات اللي بيكررها، نفس الإيموجي (ولو مش بيستخدم إيموجي ما تحطش)، ونفس طريقة كلامه مع الطلبة. ما تزوّدش رسمية ولا كلام زيادة.\n' +
+    'لو الكومنت سؤال كيمياء جاوب بدقة وباختصار زي ما هو بيعمل، ولو مش متأكد من الإجابة قول للطالب يسأل في الحصة.\n\n' +
+    'الكومنت الجديد (على ' + platform + '):\n"' + comment + '"\n\nرجّع الرد بس، من غير علامات تنصيص ولا أي شرح.';
+}
+
+// بيجمع لحد 20 مثال (كومنت ← رد القناة/الصفحة) ويحفظهم يوم. لو مفيش أمثلة، الرد بيرجع للأسلوب العام.
+function replyExamples_() {
+  var p = props_(), raw = p.getProperty('REPLY_EXAMPLES'), at = Number(p.getProperty('REPLY_EXAMPLES_AT') || 0);
+  if (raw && new Date().getTime() - at < 86400000) return JSON.parse(raw);
+  var ex = [], cut = function (t) { return String(t || '').replace(/\s+/g, ' ').trim().substring(0, 280); };
+  if (on_('YT_COMMENTS_ENABLED')) safe_(function () {
+    var ch = ytChannelId_();
+    var r = UrlFetchApp.fetch('https://www.googleapis.com/youtube/v3/commentThreads?part=snippet,replies&order=time&maxResults=100&textFormat=plainText&allThreadsRelatedToChannelId=' + ch,
+      { headers: { Authorization: 'Bearer ' + ytToken_() }, muteHttpExceptions: true });
+    (JSON.parse(r.getContentText()).items || []).forEach(function (t) {
+      var q = t.snippet.topLevelComment.snippet.textOriginal;
+      ((t.replies && t.replies.comments) || []).forEach(function (x) {
+        if (x.snippet.authorChannelId && x.snippet.authorChannelId.value === ch && x.snippet.textOriginal) ex.push({ q: cut(q), a: cut(x.snippet.textOriginal) });
+      });
+    });
+  });
+  safe_(function () {
+    var posts = graphGet_(PAGE_ID + '/published_posts?fields=comments.limit(25){message,comments.limit(10){from,message}}&limit=25').data || [];
+    posts.forEach(function (po) {
+      ((po.comments && po.comments.data) || []).forEach(function (cm) {
+        ((cm.comments && cm.comments.data) || []).forEach(function (x) {
+          if (x.from && String(x.from.id) === PAGE_ID && x.message && cm.message) ex.push({ q: cut(cm.message), a: cut(x.message) });
+        });
+      });
+    });
+  });
+  if (!ex.length) return raw ? JSON.parse(raw) : [];
+  ex = ex.slice(0, 20);
+  var json = JSON.stringify(ex);
+  while (json.length > 8500 && ex.length > 3) { ex.pop(); json = JSON.stringify(ex); }
+  p.setProperty('REPLY_EXAMPLES', json);
+  p.setProperty('REPLY_EXAMPLES_AT', String(new Date().getTime()));
+  return ex;
+}
+
+// تجربة من المحرر: بتوريك على تيليجرام كام مثال لقى من ردودك، وأول مثالين
+function replyStyleTest() {
+  props_().deleteProperty('REPLY_EXAMPLES_AT');
+  var ex = replyExamples_();
+  notify_('✍️ أسلوب الرد: لقيت ' + ex.length + ' رد من ردودك القديمة.' + ex.slice(0, 2).map(function (e) { return '\n\n• "' + e.q + '"\n← "' + e.a + '"'; }).join(''));
 }
