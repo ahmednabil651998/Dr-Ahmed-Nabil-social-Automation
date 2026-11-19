@@ -29,23 +29,27 @@
 | 2026-10-29 | Ch2 Lesson 1 | `3sec/2026-10-29_ch2-l1_9jVeziWPR7I.md` |
 | 2026-11-07 | Ch2 Lesson 2 (Cations) | `3sec/2026-11-07_ch2-l2_-ajTf8GP6To.md` |
 
-### لسه ما اتسحبش (unlisted، مستني الكريدت يتجدد)
-| الفيديو | العنوان | المدة |
+### اتسحبوا 2026-11-19 العصر
+| التاريخ | الدرس | النوع | الملف |
+|---|---|---|---|
+| ? | Lecture 3 — general properties of first transition series | شرح | `3sec/ch1-lec3_g05n1C3oGVY.md` |
+| ? | Lecture 4 — Iron: extraction (Midrex / blast furnace)، steel furnaces، alloys | شرح | `3sec/ch1-lec4_2143IW_ey3w.md` |
+| 2026-10-06 | Lesson 5 part 2 — iron reactions، balancing | شرح | `3sec/2026-10-06_ch1-l5-p2_fYvHCymSZT0.md` |
+| 2026-10-10 | حل مندليف Lesson 3 | حل | `3sec/2026-10-10_ch1-l3-mendeleev_2MkPCn33AVI.md` |
+| 2026-10-18 | معسكر شابتر 1 فكرة وتطبيق | مراجعة | `3sec/2026-10-18_ch1-camp_drVnmz_e9FM.md` |
+| 2026-10-23 | حل شامل شابتر 1 | شامل | `3sec/2026-10-23_ch1-shamel_RiJrAYldO0E.md` |
+| ? | حل كويز Lecture 2 | كويز | `3sec/quiz_ch1-lec2-quiz_5jr5CbecXd4.md` |
+| ? | حل كويز Lesson 3 (+ أول سؤال مقالي) | كويز | `3sec/quiz_ch1-lesson3-quiz_OAs-KXW5yJ4.md` |
+
+### مش متحفوظين
+| الفيديو | العنوان | السبب |
 |---|---|---|
-| `Y6jw5ZY3FA4` | Lesson 1 - part 2 | 1:17 |
-| `DZUGOAMNXjk` | Lesson 1 homework | 0:41 |
-| `N4OJVRs2JEU` | lec 4 - part 2 | 0:29 |
-| `fYvHCymSZT0` | lesson 5 part 2 | 1:15 |
-| `2MkPCn33AVI` | حل مندليف ch 1 lesson 3 | 1:43 |
-| `drVnmz_e9FM` | معسكر شابتر 1 فكرة وتطبيق | 1:30 |
-| `RiJrAYldO0E` | حل شامل شابتر 1 | 1:19 |
-| `HJ77w519yak` | Ch 2 lesson 1 part 2 | 0:50 |
-| `LMfzb34NHyQ` | Ch 2 Lesson 1 part 3 | 0:24 |
-| `EOl2CqbYnnQ` | Chapter 2 Lesson 2 p1 (غالبًا أول جزء من `b7TmBdowRqA`، اتسحب ومش متحفوظ) | 1:41 |
-| `5jr5CbecXd4` | حل الكويزات / الشامل (د. أحمد بعت اللينك 2026-11-19) | ? |
-| `OAs-KXW5yJ4` | حل الكويزات / الشامل (د. أحمد بعت اللينك 2026-11-19) | ? |
-| `g05n1C3oGVY` | شرح Lesson 3 أو 4 (د. أحمد بعت اللينك 2026-11-19) | ? |
-| `2143IW_ey3w` | شرح Lesson 3 أو 4 (د. أحمد بعت اللينك 2026-11-19) | ? |
+| `Y6jw5ZY3FA4` | Lesson 1 - part 2 | **مفيش captions على يوتيوب** خالص. الحل: vidIQ «watch» (أغلى، محتاج موافقة) أو يتفرّغ من الملف الأصلي |
+| `HJ77w519yak` | Ch 2 lesson 1 part 2 (تجارب Sulphite / Thiosulphate) | اتسحب واتقرا، بس رجع جوه الشات مش كملف (طوله 50 دقيقة). يتسحب تاني من يوتيوب ببلاش عن طريق كروم |
+| `EOl2CqbYnnQ` | Chapter 2 Lesson 2 p1 | غالبًا أول جزء من `b7TmBdowRqA` (مكرر) |
+| `DZUGOAMNXjk` | Lesson 1 homework (0:41) | لسه — قصير، أولوية قليلة |
+| `N4OJVRs2JEU` | lec 4 - part 2 (0:29) | لسه — قصير، أولوية قليلة |
+| `LMfzb34NHyQ` | Ch 2 Lesson 1 part 3 (0:24) | لسه — قصير، أولوية قليلة |
 
 ## كلام للطلبة (للأسلوب)
 - «مش عارف احل الكيمسترى» — `acFuF7OPwXw` (اتقرا، مش متحفوظ كملف)
