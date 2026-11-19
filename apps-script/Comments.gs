@@ -1,6 +1,6 @@
 /**
  * الرد على الكومنتات: كل ساعة بنجيب الكومنتات الجديدة على اللي اتنشر في آخر أيام،
- * الذكاء الاصطناعي يقترح رد، ويتبعتلك على تيليجرام: ✅ رد / ✏️ عدّل / 🙈 تجاهل.
+ * (بس الكومنتات اللي الصفحة/الحساب/القناة ما ردتش عليها)، الذكاء الاصطناعي يقترح رد، ويتبعتلك على تيليجرام: ✅ رد / ✏️ عدّل / 🙈 تجاهل.
  * مفيش أي رد بيتنشر من غير ما انت تدوس.
  * محتاج صلاحية pages_manage_engagement و pages_read_user_content في توكن الصفحة (شوف docs/rollout.md).
  *
@@ -25,10 +25,11 @@ function commentsJob_() {
 
   var days = num_('COMMENTS_DAYS'), fresh = [];
   fbCommentTargets_(days).forEach(function (id) {
-    var list = safe_(function () { return graphGet_(id + '/comments?fields=id,from,message,created_time&filter=toplevel&order=reverse_chronological&limit=25').data; }) || [];
+    var list = safe_(function () { return graphGet_(id + '/comments?fields=id,from,message,created_time,comments.limit(25){from}&filter=toplevel&order=reverse_chronological&limit=25').data; }) || [];
     list.forEach(function (cm) {
       if (known[cm.id] || !cm.message) return;
       if (cm.from && String(cm.from.id) === PAGE_ID) return; // كومنتات الصفحة نفسها
+      if (cm.comments && (cm.comments.data || []).some(function (x) { return x.from && String(x.from.id) === PAGE_ID; })) return; // الصفحة ردت عليه
       known[cm.id] = 1;
       fresh.push([cm.id, id, cm.from ? cm.from.name : '', cm.message, fbTime_(cm.created_time), '', CMS.NEW, '', CM_FB]);
     });
@@ -73,10 +74,11 @@ function igNewComments_(days, known) {
   var media = safe_(function () { return graphGet_(igId + '/media?fields=id,timestamp&limit=25').data; }) || [];
   media.forEach(function (m) {
     if (daysAgo_(String(m.timestamp || '').substring(0, 10)) > days) return;
-    var list = safe_(function () { return graphGet_(m.id + '/comments?fields=id,text,username,timestamp&limit=25').data; }) || [];
+    var list = safe_(function () { return graphGet_(m.id + '/comments?fields=id,text,username,timestamp,replies{username}&limit=25').data; }) || [];
     list.forEach(function (cm) {
       if (known[cm.id] || !cm.text) return;
       if (me && cm.username === me) return; // كومنتات الحساب نفسه
+      if (me && cm.replies && (cm.replies.data || []).some(function (x) { return x.username === me; })) return; // الحساب رد عليه
       known[cm.id] = 1;
       out.push([cm.id, m.id, cm.username || '', cm.text, fbTime_(cm.timestamp), '', CMS.NEW, '', CM_IG]);
     });
@@ -151,13 +153,14 @@ function postCommentReply_(row, msg) {
 function ytNewComments_(days, known) {
   var out = [], ch = ytChannelId_();
   if (!ch) return out;
-  var r = UrlFetchApp.fetch('https://www.googleapis.com/youtube/v3/commentThreads?part=snippet&order=time&maxResults=50&textFormat=plainText&allThreadsRelatedToChannelId=' + ch,
+  var r = UrlFetchApp.fetch('https://www.googleapis.com/youtube/v3/commentThreads?part=snippet,replies&order=time&maxResults=50&textFormat=plainText&allThreadsRelatedToChannelId=' + ch,
     { headers: { Authorization: 'Bearer ' + ytToken_() }, muteHttpExceptions: true });
   if (r.getResponseCode() !== 200) { notify_('⚠️ كومنتات يوتيوب: ' + r.getContentText().substring(0, 300)); return out; }
   (JSON.parse(r.getContentText()).items || []).forEach(function (t) {
     var top = t.snippet && t.snippet.topLevelComment, sn = top && top.snippet;
     if (!sn || known[top.id] || !sn.textOriginal) return;
     if (sn.authorChannelId && sn.authorChannelId.value === ch) return; // كومنتات القناة نفسها
+    if (t.replies && (t.replies.comments || []).some(function (x) { return x.snippet && x.snippet.authorChannelId && x.snippet.authorChannelId.value === ch; })) return; // القناة ردت عليه
     if (daysAgo_(String(sn.publishedAt || '').substring(0, 10)) > days) return;
     known[top.id] = 1;
     out.push([top.id, sn.videoId || t.snippet.videoId || '', sn.authorDisplayName || '', sn.textOriginal, fbTime_(sn.publishedAt), '', CMS.NEW, '', CM_YT]);
