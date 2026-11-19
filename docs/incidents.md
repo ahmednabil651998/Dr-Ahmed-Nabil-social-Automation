@@ -105,3 +105,15 @@
 - اتفعّل في Settings: `HEALTH_ENABLED`, `CLAUDE_WRITER_ENABLED`, `ANALYTICS_ENABLED`, `REPORT_ENABLED`.
 - لسه: `GEMINI_API_KEY`، `CF_ACCOUNT_ID` + `CF_API_TOKEN` + "اعمل قالب الصورة"، توكن فيسبوك جديد بصلاحيات إنستجرام والكومنتات.
 - الكود ده (فرع `feature/system-upgrade`) هو اللي شغال فعليًا دلوقتي في Apps Script، فلازم الـ PR يتعمل له merge في main.
+
+## 2026-11-19 — قعدة الكمبيوتر (P0) + تركيب المرحلة الأولى
+
+- **توكن فيسبوك جديد** بـ 11 صلاحية (الـ 7 القديمة + `pages_manage_engagement` و`pages_read_user_content` و`read_insights` و`instagram_manage_comments`). «ربط فيسبوك» قال «التوكن دائم».
+- **ربط إنستجرام:** @dr.ahmednabil_chemistry (834 متابع). `IG_ENABLED` لسه مقفول.
+- **Gemini:** `GEMINI_API_KEY` اتحط. مفاتيح AI Studio الجديدة بتبدأ بـ `AQ.` وشغالة مع `?key=`. `gemini-2.5-flash` اتقفل للمستخدمين الجداد، فـ `AI_MODEL` بقى `gemini-3.8-flash` (في تاب Settings وفي `Settings.gs`). التجربة رجّعت رد.
+- **Cloudflare:** `CF_ACCOUNT_ID` و`CF_API_TOKEN` اتحطوا. `IMAGES_ENABLED` لسه مقفول (فاضل قالب الصورة).
+- **Analytics:** كان فاضي عشان التوكن القديم مافيهوش `read_insights`. بعد التوكن الجديد `analyticsNow` كتب 4 عناصر.
+- **التركيب** (من طلب الدمج 13، بإيد د. أحمد، بعد نسخة احتياطية من الشيت): Learning 51، Snapshots 159، Health 109، Reels 443، Code 579 سطر، كلهم مطابقين. قبل التركيب Code 402 وReels 431 وHealth 104 (مطابقين لـ `feature/system-upgrade`).
+- **الاختبار:** `snapshotsNow` كتب صف واحد، ونبّه إن عنصر واحد ما جاتلوش أرقام (يتراجع مقياس `FB_VIEWS_METRIC` بعد تحديث 3 الفجر). `/health`: فيسبوك ويوتيوب وتيليجرام وGemini شغالين، والمشكلة الوحيدة: بوست جاهز واحد بس. `/fbid 99 x` رد «مفيش بوست رقمه 99». مفيش أي Execution أحمر.
+- **لسه:** تجربة زرار ✏️ (أول بوست يتبعت للموافقة)، ومتابعة 48 ساعة (`docs/go-live.md` قسم 6-ب).
+- الريبو: طلب الدمج 10 و13 اتدمجوا، و`apps-script/` بقى نسخة طبق الأصل من الشغال.

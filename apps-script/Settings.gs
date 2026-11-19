@@ -19,7 +19,7 @@ var SETTINGS_LIST = [
   ['IG_STORY_REELS', 'false', 'نشر الريل كمان كستوري على إنستجرام'],
   ['TIKTOK_HELPER', 'false', 'بعد نشر الريل يبعتلك الفيديو والكابشن جاهزين لتيك توك'],
   ['AI_ENABLED', 'false', 'Gemini (ببلاش): يسمع الفويس والريلز ويحوّلهم نص، ويقترح ردود الكومنتات'],
-  ['AI_MODEL', 'gemini-2.5-flash', 'اسم موديل Gemini'],
+  ['AI_MODEL', 'gemini-3.8-flash', 'اسم موديل Gemini'],
   ['CLAUDE_WRITER_ENABLED', 'false', 'مهمة Claude المجدولة تكتب البوستات والريلز اللي حالتها "اكتبها" (من اشتراكك)'],
   ['CLAUDE_TIMES', '10:43 الصبح و 8:43 بالليل', 'مواعيد مهمة Claude (للعرض بس، الميعاد نفسه بيتغير من المهمة)'],
   ['IMAGES_ENABLED', 'false', 'صورة البوست تتعمل لوحدها: خلفية من Cloudflare + الهوك بالعربي من قالب Slides'],

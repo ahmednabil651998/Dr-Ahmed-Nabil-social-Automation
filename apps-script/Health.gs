@@ -74,12 +74,17 @@ function runHealth_(manual) {
 
   // 7) المحتوى الجاهز والحالات العالقة
   var today = cairoDate_();
-  var s = sheet_(), readyPosts = 0, stuck = [];
+  var s = sheet_(), readyPosts = 0, stuck = [], review = [], noFbId = [];
   for (var r = 2; r <= s.getLastRow(); r++) {
     var st = cellText_(r, C.STATUS), d = cellText_(r, C.DATE);
     if (st === ST.READY) readyPosts++;
     if ((st === ST.SENT || st === ST.APPROVED) && d && d < today && daysAgo_(d) >= 2) stuck.push('بوست ' + cellText_(r, C.NUM) + ' (' + st + ')');
+    // "محتاج مراجعة" (Code.gs): فيسبوك ما أكدش النشر، وبيتنبّه عليه كل يوم لحد ما يتراجع
+    if (typeof ST_REVIEW !== 'undefined' && st === ST_REVIEW) review.push(cellText_(r, C.NUM));
+    if (st === ST.DONE && !cellText_(r, C.FBID) && daysAgo_(d) <= 60) noFbId.push(cellText_(r, C.NUM));
   }
+  if (review.length) bad.push('محتاج مراجعة (فيسبوك ما أكدش النشر): بوست ' + review.join('، ') + '. افتح الصفحة واتأكد، وبعدين دوس «✅ اتنشر فعلًا» أو «🔁 ما اتنشرش، انشره» في رسالة تيليجرام.');
+  if (noFbId.length) bad.push('اتنشر من غير رقم فيسبوك، فأرقامه مش بتتسحب: بوست ' + noFbId.join('، ') + '. ابعت: /fbid رقم_البوست اللينك');
   var readyReels = 0, rs = rsheet_();
   if (rs) {
     for (var q = 2; q <= rs.getLastRow(); q++) {
