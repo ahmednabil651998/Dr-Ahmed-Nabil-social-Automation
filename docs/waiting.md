@@ -4,7 +4,7 @@
 > أي جلسة Claude تبدأ من هنا، وتقول لد. أحمد على أي بند واقف من غير ما يسأل.
 > لما بند يخلص: يتعلّم `[x]` ويتكتب التاريخ. أي حاجة جديدة تقف: تتضاف هنا فورًا.
 >
-> ✅ حالة المفاتيح اتأكدت من تاب `Settings` في الشيت 2026-11-19: **شغالين:** `HEALTH_ENABLED`، `CLAUDE_WRITER_ENABLED`، `ANALYTICS_ENABLED`، `REPORT_ENABLED`، `SNAPSHOTS_ENABLED`. **مقفولين:** الباقي.
+> ✅ حالة المفاتيح في تاب `Settings` (آخر تحديث 2026-11-19 11:12 بالليل): **شغالين:** `HEALTH_ENABLED`، `CLAUDE_WRITER_ENABLED`، `ANALYTICS_ENABLED`، `REPORT_ENABLED`، `SNAPSHOTS_ENABLED`، `AI_ENABLED` (`gemini-3.8-flash`)، `COMMENTS_ENABLED`، `IG_COMMENTS_ENABLED`، `IG_ENABLED`، `IG_REELS_ENABLED`. **مقفولين:** الباقي.
 
 ## ✅ اتحقق: النشر اليومي شغال (2026-11-19، من سكرينات تيليجرام)
 
@@ -37,16 +37,16 @@
 
 ## P1 — مزايا مكتوبة ومتركّبة بس مقفولة (`false` في Settings)
 
-> متفعّلين فعلًا (الفحص اليومي وClaude شغالين؛ Analytics فاضي): `HEALTH_ENABLED`، `CLAUDE_WRITER_ENABLED`، `ANALYTICS_ENABLED` (التاب فاضي)، `REPORT_ENABLED` (معتمد على Analytics)، `SNAPSHOTS_ENABLED` (الملف مش متركّب).
+> متفعّلين: `HEALTH_ENABLED`، `CLAUDE_WRITER_ENABLED`، `ANALYTICS_ENABLED`، `REPORT_ENABLED`، `SNAPSHOTS_ENABLED`، `AI_ENABLED`، `COMMENTS_ENABLED`، `IG_COMMENTS_ENABLED`، `IG_ENABLED`، `IG_REELS_ENABLED` (2026-11-19).
 
 تتفعّل **واحدة واحدة** بعد P0، وكل واحدة بموافقة د. أحمد (الترتيب في `docs/rollout.md`):
 
-- [ ] `COMMENTS_ENABLED` — الرد على كومنتات فيسبوك (أولوية عند د. أحمد). محتاج بند 1، والرد المقترح محتاج بند 2.
-- [ ] `IG_ENABLED` ← بعدها `IG_REELS_ENABLED` (و`IG_STORY_REELS` اختياري) — محتاج بند 1 + مراجعة مقاس القالب (4:5 لحد 1.91:1).
+- [x] `COMMENTS_ENABLED` + `IG_COMMENTS_ENABLED` — اتفعّلوا 2026-11-19 (كومنتات كل بوستات الصفحة على فيسبوك + إنستجرام، `COMMENTS_SCOPE` = `all` افتراضي). **يتابَع:** أول كومنت يوصل تيليجرام بالرد المقترح.
+- [x] `IG_ENABLED` + `IG_REELS_ENABLED` — اتفعّلوا 2026-11-19. **يتابَع:** أول نشر 2026-11-20 الساعة 5 (لو الصورة أطول من 4:5 إنستجرام هيرفض، وفيسبوك بيفضل منشور + زرار «🔁 أعد إنستجرام بس»). `IG_STORY_REELS` لسه مقفول.
 - [ ] `IMAGES_ENABLED` — محتاج بند 3.
 - [ ] `TIKTOK_HELPER` — بعد كل ريل يبعتلك الفيديو والكابشن لتيك توك. مش محتاج حاجة.
 - [ ] `RECYCLE_ENABLED` — محتاج 5 بوستات على الأقل في Analytics.
-- [ ] `IDEAS_FROM_COMMENTS` — محتاج `COMMENTS_ENABLED`.
+- [ ] `IDEAS_FROM_COMMENTS` — جاهز (الكومنتات اشتغلت)، مستني موافقة د. أحمد.
 
 ## P2 — مستني د. أحمد (مش محتاج كمبيوتر)
 
@@ -74,5 +74,5 @@
 
 - [ ] Webhook + داش بورد (`TG_MODE = webhook`) — ردود البوت تبقى لحظية بدل كل دقيقة.
 - [ ] الفريق: `APPROVER_EMAILS` (لو Claude بيوافق من حساب 998) + إضافة مريم.
-- [ ] **كومنتات كل بوستات الصفحة + كومنتات إنستجرام** — الكود اتكتب (2026-11-19) في فرع `feat/comments-all-and-instagram` (مبني على `feature/system-upgrade`): `Comments.gs` + سطرين في `Settings.gs`. **مستني التركيب** في Apps Script مع بند 1. مفاتيح جديدة: `COMMENTS_SCOPE` (`all` افتراضي) و`IG_COMMENTS_ENABLED`. صلاحية `instagram_manage_comments` اتضافت لأبّ Meta، ولازم تتعلّم في Graph API Explorer مع الباقي (11 صلاحية).
+- [x] **كومنتات كل بوستات الصفحة + كومنتات إنستجرام** — فرع `feat/comments-all-and-instagram` اتدمج في `main`، و`Comments.gs` (142) و`Settings.gs` (174) اتركّبوا في Apps Script 2026-11-19.
 - [ ] تيك توك أوتوماتيك — محتاج مراجعة تيك توك للأبّ؛ لحد كده نص-أوتوماتيك (`TIKTOK_HELPER`).

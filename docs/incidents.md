@@ -117,3 +117,4 @@
 - **الاختبار:** `snapshotsNow` كتب صف واحد، ونبّه إن عنصر واحد ما جاتلوش أرقام (يتراجع مقياس `FB_VIEWS_METRIC` بعد تحديث 3 الفجر). `/health`: فيسبوك ويوتيوب وتيليجرام وGemini شغالين، والمشكلة الوحيدة: بوست جاهز واحد بس. `/fbid 99 x` رد «مفيش بوست رقمه 99». مفيش أي Execution أحمر.
 - **لسه:** تجربة زرار ✏️ (أول بوست يتبعت للموافقة)، ومتابعة 48 ساعة (`docs/go-live.md` قسم 6-ب).
 - الريبو: طلب الدمج 10 و13 اتدمجوا، و`apps-script/` بقى نسخة طبق الأصل من الشغال.
+- **بعدها (11 بالليل):** فرع `feat/comments-all-and-instagram` اتدمج، و`Comments.gs` و`Settings.gs` اتركّبوا من `main`. اتفعّل في تاب Settings: `AI_ENABLED`، `COMMENTS_ENABLED`، `IG_COMMENTS_ENABLED`، `IG_ENABLED`، `IG_REELS_ENABLED`. (ملحوظة: التعديل بيتعمل في **تاب** Settings، مش في `Settings.gs`؛ الملف قيم افتراضية بس والتاب بيغلبه.)
