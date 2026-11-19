@@ -54,7 +54,7 @@
 - [ ] **🔴 دفعة بوستات جديدة — عاجل:** 5 بوستات (21→25 نوفمبر) في `content/drafts/2026-11-21_to_25.md` مستنية موافقة د. أحمد. بوست 5 آخر جاهز (بيتبعت 20 نوفمبر)، يعني **21 نوفمبر مفيش بوست** لو ما اتوافقش.
 - [ ] **صور البوستات:** الطريقة الأولى (صوره الحقيقية + `tools/mkpost.py`) شغالة — مسودتين في `content/drafts/`. محتاج **ملف الخط** بتاع تصميماته. الطريقة التانية (Cloudflare FLUX) محتاجة د. أحمد يعمل حساب Cloudflare (بـ Google). صوره الأصلية في `D:\صور للمنصة` على الكمبيوتر.
 - (قديم) الجاهز بيخلص بعد بوست 5 (بيتبعت 2026-11-20). `CLAUDE_WRITER_ENABLED` شغال، فابعت `/idea <الفكرة>` للبوت وClaude يكتبها. (لو `CLAUDE_WRITER_ENABLED` اتفعّل، ابعت `/idea` للبوت.)
-- [ ] **Google Sheets connector** لمهمة «مراجعة الأسبوع: التعديلات والأرقام» من claude.ai — **قبل السبت 2026-11-21**.
+- [x] (اتعمل 2026-11-19) **Google Sheets connector** لمهمة «مراجعة الأسبوع: التعديلات والأرقام» من claude.ai — **قبل السبت 2026-11-21**.
 - [ ] **مراجعة التقويم الموسمي** `docs/seasonal-calendar.md`.
 - [ ] **مسح فيديو التجربة** `ewyeMAA8YlI` من YouTube Studio (قناة حساب 999، Unlisted).
 
@@ -78,7 +78,7 @@
 - [ ] تيك توك أوتوماتيك — محتاج مراجعة تيك توك للأبّ؛ لحد كده نص-أوتوماتيك (`TIKTOK_HELPER`).
 
 ## 🆕 2026-11-19 بالليل
-- [ ] **كومنتات يوتيوب** — الكود اتكتب في `apps-script/Comments.gs` (اتجرّب على محاكي): بيجيب كومنتات كل فيديوهات القناة آخر `COMMENTS_DAYS` يوم بتوكن حساب 998، ونفس زراير تيليجرام. مفتاح جديد `YT_COMMENTS_ENABLED`. **فاضل:** تركيب `Comments.gs` و`Settings.gs` في Apps Script، وتشغيل `ytCommentsTest`، وتجربة أول رد (لو قال youtube.force-ssl: موافقة جديدة من OAuth Playground بحساب 998 بالـ scope ده كمان).
+- [ ] **كومنتات يوتيوب** — متركّب 2026-11-19، و`ytCommentsTest` رجّع 403 insufficient scopes ← محتاج Refresh token جديد بـ scope `youtube.force-ssl` (حساب 998). الكود اتكتب في `apps-script/Comments.gs` (اتجرّب على محاكي): بيجيب كومنتات كل فيديوهات القناة آخر `COMMENTS_DAYS` يوم بتوكن حساب 998، ونفس زراير تيليجرام. مفتاح جديد `YT_COMMENTS_ENABLED`. **فاضل:** تركيب `Comments.gs` و`Settings.gs` في Apps Script، وتشغيل `ytCommentsTest`، وتجربة أول رد (لو قال youtube.force-ssl: موافقة جديدة من OAuth Playground بحساب 998 بالـ scope ده كمان).
 - [ ] **تيك توك** — بنبدأ: د. أحمد يعمل حساب مطوّر + أبّ على developers.tiktok.com ويطلب Content Posting API (المراجعة بتاخد أيام/أسابيع). لحد كده `TIKTOK_HELPER`.
 - [ ] **المحاضرات** — د. أحمد **وافق** على طريقة كروم (تنزيل ملفات الترانسكريبت). نبدأ من 2026-11-20: أولى ثانوي (9 فيديوهات) + الناقص من تالتة.
-- [ ] مهمة «مراجعة الأسبوع» مالهاش Google Sheets connector، ونص مهمة «بوست الصفحة اليومي» محتاج يتحدّث (`docs/claude-tasks-update.md`) — Claude يقدر يعملهم من Claude Code (RemoteTrigger) بموافقة د. أحمد.
+- [x] (اتعمل 2026-11-19) مهمة «مراجعة الأسبوع» مالهاش Google Sheets connector، ونص مهمة «بوست الصفحة اليومي» محتاج يتحدّث (`docs/claude-tasks-update.md`) — Claude يقدر يعملهم من Claude Code (RemoteTrigger) بموافقة د. أحمد.
