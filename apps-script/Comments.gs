@@ -102,11 +102,22 @@ function sendCommentForApproval_(row) {
   }
   var kb = [[{ text: '✏️ اكتب رد', callback_data: 'cme:' + row }, { text: '🙈 تجاهل', callback_data: 'cmx:' + row }]];
   if (reply) kb.unshift([{ text: '✅ ابعت الرد', callback_data: 'cmo:' + row }]);
+  var link = commentLink_(v);
+  if (link) kb.push([{ text: '🔗 افتح البوست', url: link }]);
   var res = tg_('sendMessage', { chat_id: props_().getProperty('CHAT_ID'),
     text: '💬 ' + (v[CMC.PLATFORM - 1] || CM_FB) + ' — كومنت من ' + (v[CMC.NAME - 1] || 'متابع') + ':\n"' + v[CMC.TEXT - 1] + '"\n\n' + (reply ? 'الرد المقترح:\n' + reply : '(مفيش رد مقترح)'),
     reply_markup: JSON.stringify({ inline_keyboard: kb }) });
   c.getRange(row, CMC.STATUS).setValue(CMS.SENT);
   if (res && res.result) c.getRange(row, CMC.TGMSG).setValue(res.result.message_id);
+}
+
+// لينك يفتح البوست (وعلى فيسبوك ويوتيوب بيروح للكومنت نفسه) عشان ترد بنفسك
+function commentLink_(v) {
+  var id = String(v[CMC.ID - 1] || ''), post = String(v[CMC.POST - 1] || ''), plat = String(v[CMC.PLATFORM - 1] || CM_FB);
+  if (plat === CM_YT) return post ? 'https://www.youtube.com/watch?v=' + post + '&lc=' + id : '';
+  if (plat === CM_IG) return safe_(function () { return graphGet_(post + '?fields=permalink').permalink; }) || '';
+  var link = safe_(function () { return graphGet_(id + '?fields=permalink_url').permalink_url; });
+  return link || (post ? 'https://www.facebook.com/' + post : '');
 }
 
 function handleCommentCallback_(data) {
