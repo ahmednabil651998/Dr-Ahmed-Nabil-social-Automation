@@ -61,6 +61,15 @@
 > العامّين من القناة: Lessons 1 → 10 (`vOGzt8L_EKE`، `VP-cJMAkYIs`، `YylMwIunm8E`، `WlUcVYdA9Oc`، `Zk717tcqIn4`، `PgjW7d_i-7U`، `x9w9rbqyhrE`، `iLIcSM-CzKg`، `wbSSKjJQPxA`، `mUb5r34l3dw`، `ksWnsVXidok`) + مراجعة أكتوبر `jy68vI4VJAg`.
 > الملفات هتتحط في `lectures/1sec/`.
 
+| التاريخ | الدرس | الملف |
+|---|---|---|
+| 2026-09-21 | Lesson 2 — Chemical Properties of Water | `1sec/2026-09-21_l2_VP-cJMAkYIs.md` |
+| 2026-09-25 | Lesson 3 part 1 — Physical Properties (units, density) | `1sec/2026-09-25_l3-p1_YylMwIunm8E.md` |
+| 2026-09-29 | Lesson 3 part 2 — Heat & temperature | `1sec/2026-09-29_l3-p2_WlUcVYdA9Oc.md` |
+
+**لسه:** Lesson 1 (`vOGzt8L_EKE`)، Lesson 4 (`Zk717tcqIn4` — اتسحب واتقرا، رجع جوه الشات مش كملف)، Lesson 5 (`PgjW7d_i-7U`)، 6 (`x9w9rbqyhrE`)، 7 (`iLIcSM-CzKg`)، 8 (`wbSSKjJQPxA`)، 9 (`mUb5r34l3dw`)، 10 (`ksWnsVXidok`)، مراجعة أكتوبر (`jy68vI4VJAg`).
+> ⚠️ vidIQ بيرجّع الفيديوهات اللي أقل من حوالي ساعة وربع **جوه الشات** مش كملف، فما بتتحفظش من غير ما تتكتب تاني بالكامل (مكلف). الحل المقترح: نسحبها من يوتيوب ببلاش عن طريق كروم (سكربت بينزّل ملف الترانسكريبت على كمبيوتر د. أحمد، وبعدين يتنقل للريبو) — محتاج موافقته على تنزيل الملفات.
+
 ## تانية ثانوي
 - `BCdTTqtEphU` حل هومورك metallic — **تانية ثانوي** (أكد د. أحمد 2026-11-19).
 لسه ما اتسحبش. د. أحمد قال تالتة هي الأهم (2026-11-19).
