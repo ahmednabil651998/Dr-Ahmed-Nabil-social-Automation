@@ -89,18 +89,35 @@ function sendCommentForApproval_(row) {
   var reply = String(v[CMC.REPLY - 1] || '');
   if (!reply && on_('AI_ENABLED')) {
     reply = safe_(function () {
-      return ai_([{ text: BRAND_VOICE + '\n\nده كومنت من طالب على بوست في الصفحة:\n"' + v[CMC.TEXT - 1] + '"\n' +
-        'اكتب رد قصير (سطر أو اتنين) بالعامية المصرية باسم د. أحمد: دافي ومشجّع. لو سؤال كيمياء جاوب باختصار وبدقة، ولو مش متأكد قوله يسأل في الحصة. رجّع الرد بس من غير أي شرح.' }], false);
+      return ai_([{ text: BRAND_VOICE + '\n\nده كومنت من متابع على بوست في الصفحة:\n"' + v[CMC.TEXT - 1] + '"\n\n' +
+        'اكتب رد واحد باسم د. أحمد بالعامية المصرية، على قد الكومنت ونفس نبرته:\n' +
+        '- مجاملة أو ضحك أو إيموجي أو كلمة زي "جامد" أو "تسلم": رد قصير جدًا (من 3 لـ 8 كلمات) ومؤدب، زي: "بنور حضرتك شكرا لذوقك ❤️🌷".\n' +
+        '- دعاء أو شكر: رد بشكر أو دعاء قصير.\n' +
+        '- سؤال كيمستري: جاوب باختصار وبدقة في سطر أو اتنين، ولو مش متأكد قوله يسأل في الحصة.\n' +
+        '- شكوى أو زعل: رد هادي ومحترم من غير جدال.\n' +
+        'ممنوع تبدأ بـ "حبيبي"، وممنوع "يا بطل" و"شد حيلك" إلا لو الكومنت نفسه عن المذاكرة أو الامتحان. من غير حماس زيادة، وإيموجي واحد أو اتنين بالكتير.\n' +
+        'رجّع الرد بس من غير أي شرح.' }], false);
     });
     if (reply) c.getRange(row, CMC.REPLY).setValue(reply);
   }
   var kb = [[{ text: '✏️ اكتب رد', callback_data: 'cme:' + row }, { text: '🙈 تجاهل', callback_data: 'cmx:' + row }]];
   if (reply) kb.unshift([{ text: '✅ ابعت الرد', callback_data: 'cmo:' + row }]);
+  var link = commentLink_(v);
+  if (link) kb.push([{ text: '🔗 افتح البوست', url: link }]);
   var res = tg_('sendMessage', { chat_id: props_().getProperty('CHAT_ID'),
     text: '💬 ' + (v[CMC.PLATFORM - 1] || CM_FB) + ' — كومنت من ' + (v[CMC.NAME - 1] || 'متابع') + ':\n"' + v[CMC.TEXT - 1] + '"\n\n' + (reply ? 'الرد المقترح:\n' + reply : '(مفيش رد مقترح)'),
     reply_markup: JSON.stringify({ inline_keyboard: kb }) });
   c.getRange(row, CMC.STATUS).setValue(CMS.SENT);
   if (res && res.result) c.getRange(row, CMC.TGMSG).setValue(res.result.message_id);
+}
+
+// لينك يفتح البوست (وعلى فيسبوك ويوتيوب بيروح للكومنت نفسه) عشان ترد بنفسك
+function commentLink_(v) {
+  var id = String(v[CMC.ID - 1] || ''), post = String(v[CMC.POST - 1] || ''), plat = String(v[CMC.PLATFORM - 1] || CM_FB);
+  if (plat === CM_YT) return post ? 'https://www.youtube.com/watch?v=' + post + '&lc=' + id : '';
+  if (plat === CM_IG) return safe_(function () { return graphGet_(post + '?fields=permalink').permalink; }) || '';
+  var link = safe_(function () { return graphGet_(id + '?fields=permalink_url').permalink_url; });
+  return link || (post ? 'https://www.facebook.com/' + post : '');
 }
 
 function handleCommentCallback_(data) {
