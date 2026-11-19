@@ -50,13 +50,43 @@ var FB_RATE_CODES = { 4: 1, 17: 1, 32: 1, 613: 1 };      // طلبات كتير
 
 function analyticsCtx_() { return { dead: {}, skip: {}, optFails: {}, streak: {}, errors: [], optional: [] }; }
 
+// نص الخطأ للملخص:
+// - Meta (فيه fbCode من fbJson_): أول سطر بس زي الأول (السطر التاني نصيحة "ربط فيسبوك" والملخص بيضيفها لوحده).
+// - يوتيوب (ytGet_ في Reels.gs بتحط رد Google كله، وده JSON على كذا سطر): بنقرا error.code و error.message و reason من الـ JSON.
+// - غير كده: النص كله في سطر واحد، بحد أقصى 200 حرف.
+var YT_RATE_REASONS = { quotaExceeded: 1, dailyLimitExceeded: 1, rateLimitExceeded: 1, userRateLimitExceeded: 1 };
+
+function errInfo_(e) {
+  var raw = String(e && e.message ? e.message : e);
+  if (e && e.fbCode) return { msg: raw.split('\n')[0], http: 0, reason: '' };
+  var i = raw.indexOf('{');
+  if (i !== -1) {
+    try {
+      var j = JSON.parse(raw.substring(i));
+      var er = j ? j.error : null;
+      if (er && typeof er === 'object') {
+        var reason = er.errors && er.errors[0] && er.errors[0].reason ? String(er.errors[0].reason) : String(er.status || '');
+        var text = (raw.substring(0, i) + (er.message || '') + (reason ? ' [' + reason + ']' : '')).replace(/\s+/g, ' ').trim();
+        return { msg: text, http: Number(er.code) || 0, reason: reason };
+      }
+    } catch (x) { /* مش JSON سليم: نكمل بالنص زي ما هو */ }
+  }
+  var flat = raw.replace(/\s+/g, ' ').trim();
+  return { msg: flat.length > 200 ? flat.substring(0, 200) + '…' : flat, http: 0, reason: '' };
+}
+
 function analyticsError_(ctx, e, scope, label, optional) {
-  var msg = String(e && e.message ? e.message : e).split('\n')[0];
+  var info = errInfo_(e), msg = info.msg;
   var code = e && e.fbCode ? Number(e.fbCode) : 0;
   var perm = code === 10 || (code >= 200 && code <= 299);
   if (FB_TOKEN_CODES[code]) { ctx.dead[scope] = { kind: 'token', msg: msg, code: code }; return; }
   if (FB_RATE_CODES[code]) { ctx.dead[scope] = { kind: 'rate', msg: msg, code: code }; return; }
-  if (scope === 'yt' && /invalid_grant|توكن يوتيوب|unauthorized|401|403/i.test(msg)) { ctx.dead[scope] = { kind: 'token', msg: msg, code: code }; return; }
+  if (scope === 'yt') {
+    // بالترتيب: حد الطلبات/الكوتا، بعدين التوكن، بعدين الصلاحية. كلهم بيقفلوا يوتيوب بس، وفيسبوك/إنستجرام بيكملوا.
+    if (info.http === 429 || YT_RATE_REASONS[info.reason]) { ctx.dead[scope] = { kind: 'rate', msg: msg, code: info.http }; return; }
+    if (info.http === 401 || /invalid_grant|توكن يوتيوب|unauthenticated|unauthorized/i.test(msg)) { ctx.dead[scope] = { kind: 'token', msg: msg, code: info.http }; return; }
+    if (info.http === 403) { ctx.dead[scope] = { kind: 'perm', msg: msg, code: info.http }; return; }
+  }
   if (optional) {
     var key = label + ': ' + msg;
     if (ctx.optional.indexOf(key) === -1) ctx.optional.push(key);
@@ -78,7 +108,7 @@ function analyticsSummary_(ctx, n) {
     var d = ctx.dead[sc];
     lines.push('🔑 ' + names[sc] + ': وقفنا الطلبات بدري (' + why[d.kind] + '): ' + d.msg +
       (sc === 'graph' && (d.kind === 'token' || d.kind === 'perm') ? '\n   شغّل "2) ربط فيسبوك" من قايمة الجدول.' : '') +
-      (sc === 'yt' && d.kind === 'token' ? '\n   شوف docs/youtube-status.md.' : ''));
+      (sc === 'yt' && (d.kind === 'token' || d.kind === 'perm') ? '\n   شوف docs/youtube-status.md.' : ''));
   });
   if (ctx.errors.length) {
     lines.push('❌ عناصر ما اتحدّثتش (' + ctx.errors.length + '):\n   • ' + ctx.errors.slice(0, 5).join('\n   • ') +
