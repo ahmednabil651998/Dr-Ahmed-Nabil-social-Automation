@@ -1,5 +1,7 @@
 # مستني جهاز: اللي يتعمل أول ما كمبيوتر أو Chrome يتوصل
 
+> ⛔ **اتبدّل بـ `docs/go-live.md`.** الملف ده متساب للتاريخ بس.
+
 > اتكتب 2026-11-18. أي جلسة Claude جاية تبدأ من هنا لو اتقالها «الجهاز اتوصل» أو «كمّل التركيب».
 > شرط البداية: Claude in Chrome متصل، أو فولدر على الكمبيوتر متصل بـ Remote Control. ومحرر Apps Script مفتوح بحساب `651999`.
 
@@ -12,11 +14,16 @@
 - [ ] **Executions:** فلتر على `dailyJob` حوالي الساعة 5 العصر يوم 2026-11-17. سجّل الخطأ لو موجود في `docs/incidents.md`.
 
 ## 2) تركيب الملفات (من `apps-script/next/`)
+
+> **الخطوات النهائية والرجوع:** القسمين 7 و8 في `docs/code-review-2026-11-18.md`، وهما اللي يتمشي عليهم. اللي تحت ملخص.
+> **حماية النشر** اتدمجت في `Code.gs` و`Reels.gs` بموافقة د. أحمد. بعد التركيب، مهمة «بوست الصفحة اليومي للموافقة» محتاجة سطر جديد (الخطوة 11 في المراجعة).
 - [ ] ملف جديد `Learning` ← `apps-script/next/Learning.gs`.
 - [ ] ملف جديد `Snapshots` ← `apps-script/next/Snapshots.gs`.
 - [ ] `Code.gs` ← استبدال كامل بـ `apps-script/next/Code.gs`.
 - [ ] `Reels.gs` ← استبدال كامل بـ `apps-script/next/Reels.gs`.
-- [ ] Save ← مفيش خط أحمر، وطول كل ملف بعد Reload مطابق للريبو.
+- [ ] `Health.gs` ← استبدال كامل بـ `apps-script/next/Health.gs`.
+- [ ] بعد التركيب: نص مهمة «بوست الصفحة اليومي للموافقة» الجديد من `docs/claude-tasks-update.md`.
+- [ ] Save ← مفيش خط أحمر، وعدد السطور: `Code.gs` 579 و`Reels.gs` 443 و`Health.gs` 109 و`Learning.gs` 51 و`Snapshots.gs` 159.
 - [ ] لو ظهر «Authorization required»: نفس الحل اللي في `docs/incidents.md` (2026-11-17، تركيب الإضافات).
 - **ما تركّبش** `Analytics.gs` بتاع طلب الدمج 11 (A1)، لأنه هيتعارض مع `Analytics.gs` الشغال.
 - ما تلمسش أي ملف تاني، ولا Triggers، ولا Script Properties.
