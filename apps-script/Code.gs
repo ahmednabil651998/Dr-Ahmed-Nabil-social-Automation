@@ -151,8 +151,11 @@ function dailySend_(now) {
   if (props_().getProperty('LAST_SENT_DATE') === today) return;
   if (hour > sendHour && !catchUpAllowed_(today, sendHour)) return; // الساعة عدّت ومابتعتش: محاولة متأخرة واحدة بس
   var ok = sendNext_(today);
-  if (ok) props_().setProperty('LAST_SENT_DATE', today);
-  else props_().setProperty('LAST_CATCHUP_DATE', today); // مفيش بوست جاهز: التنبيه وصل خلاص، ومفيش داعي لمحاولة متأخرة
+  // LAST_SENT_DATE بيتسجل بس لو البوست وصل تيليجرام فعلًا (sendNext_ بترجع true بس في الحالة دي)
+  if (ok === true) props_().setProperty('LAST_SENT_DATE', today);
+  // مفيش بوست جاهز أو البيانات بايظة: التنبيه وصل خلاص، ومفيش داعي لمحاولة متأخرة.
+  // لكن لو تيليجرام فشل مؤقتًا (أو إعداداته): مانكتبش LAST_CATCHUP_DATE، فالمحاولة المتأخرة تبقى فرصة تانية (مرة واحدة بس).
+  else if (SEND_NEXT_KIND_ === 'none' || SEND_NEXT_KIND_ === 'data') props_().setProperty('LAST_CATCHUP_DATE', today);
 }
 
 // لو تشغيل الساعة SEND_HOUR ما حصلش (التريجر اتأخر أو وقف بخطأ)، بنحاول مرة واحدة بس في الساعات اللي بعدها.
@@ -180,44 +183,171 @@ function catchUpAllowed_(today, sendHour) {
 }
 
 function sendNextNow() {
-  if (!sendNext_(cairoDate_())) SpreadsheetApp.getUi().alert('مفيش بوست جاهز بتاريخ النهارده أو قبله.');
+  if (sendNext_(cairoDate_()) !== true) SpreadsheetApp.getUi().alert(SEND_NEXT_REASON_ || 'ما اتبعتش بوست للموافقة.');
 }
 
+/* ---------- أدوات أمان الإرسال (مشتركة مع Reels.gs و Health.gs و Web.gs) ---------- */
+
+var SEND_NEXT_REASON_ = ''; // سبب آخر مرة sendNext_ ما بعتتش (للتنبيه في sendNextNow)
+var SEND_NEXT_KIND_ = '';   // نوع آخر فشل: none = مفيش بوست جاهز، data = بيانات بايظة، temp/config = تيليجرام (Code.gs: dailySend_)
+var BLOCK_TAG = '⛔ موقوف تلقائي';
+var MAX_SEND_TRIES = 3; // أقصى عدد صفوف بنجربها في التشغيلة الواحدة لو كل واحد بياناته بايظة
+
+// تاريخ صحيح بصيغة yyyy-MM-dd بالظبط (وموجود في التقويم: 2026-02-30 مرفوض)
+function validDate_(d) {
+  d = String(d === null || d === undefined ? '' : d).replace(/^'/, '').trim();
+  var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d);
+  if (!m) return '';
+  var y = Number(m[1]), mo = Number(m[2]), da = Number(m[3]);
+  var x = new Date(Date.UTC(y, mo - 1, da));
+  if (x.getUTCFullYear() !== y || x.getUTCMonth() !== mo - 1 || x.getUTCDate() !== da) return '';
+  return d;
+}
+
+// بصمة قصيرة لبيانات الصف. لو البيانات اتغيرت (ID الصورة/الفيديو أو الكابشن) البصمة بتتغير والإيقاف بيتشال لوحده
+function dataPrint_(parts) {
+  var bytes = Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, parts.join('|'), Utilities.Charset.UTF_8);
+  return Utilities.base64EncodeWebSafe(bytes).substring(0, 10);
+}
+function blockMarker_(print) { return '[' + BLOCK_TAG + ' #' + print + ']'; }
+
+function postPrint_(row) { return dataPrint_(['post', cellText_(row, C.IMG).trim(), cellText_(row, C.CAPTION)]); }
+// البوست موقوف لو في الملاحظات علامة إيقاف بنفس بصمة بياناته الحالية
+function postBlocked_(row) { return cellText_(row, C.NOTES).indexOf(blockMarker_(postPrint_(row))) !== -1; }
+
+// بتضيف سطر للملاحظات من غير ما تمسح القديم
+function appendNote_(range, line) {
+  var old = String(range.getValue() || '');
+  range.setValue(old ? old + '\n' + line : line);
+}
+function stamp_() { return Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd HH:mm'); }
+
+// إرسال آمن: notify_ نفسها ممكن تفشل لو تيليجرام واقع، فمانخليهاش توقف الشغل
+function notifySafe_(text) { try { notify_(text); } catch (e) { Logger.log('notify فشل: ' + e.message + ' | ' + text); } }
+
+// بتنده تيليجرام ومابترميش خطأ أبدًا: لو حصل exception (شبكة، رد مش JSON) بترجع ok:false
+function tgTry_(fn) {
+  try {
+    var r = fn();
+    if (r && typeof r === 'object') return r;
+    return { ok: false, error_code: 0, description: 'رد فاضي من تيليجرام', _exception: true };
+  } catch (e) {
+    return { ok: false, error_code: 0, description: String(e && e.message ? e.message : e), _exception: true };
+  }
+}
+
+// تصنيف فشل تيليجرام:
+// data = البيانات نفسها مرفوضة (الصورة/الفيديو/الكابشن) فمش هتنجح لو اتعادت زي ما هي
+// config = توكن البوت أو الشات (مش ذنب الصف، ومانوقفوش)
+// temp = شبكة أو ضغط أو حاجة مؤقتة (مانوقفش الصف، وبيتعاد بعدين)
+function tgFailKind_(res) {
+  if (!res || res._exception) return 'temp';
+  var code = Number(res.error_code) || 0, d = String(res.description || '');
+  if (code === 429 || code >= 500 || code === 0) return 'temp';
+  if (code === 401 || code === 403 || code === 404) return 'config';
+  if (/chat not found|chat_id|bot was blocked|not enough rights|unauthorized|bot token/i.test(d)) return 'config';
+  if (code === 413) return 'data';
+  if (code === 400 && /photo|image|video|file|too big|too long|dimension|entity too large|wrong type|media|caption|message is too long|IMAGE_PROCESS|PHOTO_/i.test(d)) return 'data';
+  return 'temp';
+}
+
+// تصنيف أخطاء Drive: "مش موجود / مفيش صلاحية / ID غلط" = بيانات، و"خطأ خدمة / ضغط" = مؤقت
+function driveFailKind_(e) {
+  var msg = String(e && e.message ? e.message : e);
+  if (/service error|server error|too many times|timed? ?out|rate limit|backend|temporar|try again|internal error/i.test(msg)) return 'temp';
+  return 'data';
+}
+
+function tgDesc_(res) { return (res && res.description ? res.description : 'سبب غير معروف') + (res && res.error_code ? ' (كود ' + res.error_code + ')' : ''); }
+
 function sendNext_(today) {
-  var s = sheet_(), last = s.getLastRow(), row = 0, ready = 0;
+  SEND_NEXT_REASON_ = ''; SEND_NEXT_KIND_ = '';
+  var s = sheet_(), last = s.getLastRow(), cands = [], ready = 0, blocked = 0, badDate = 0;
   for (var r = 2; r <= last; r++) {
     if (cellText_(r, C.STATUS) !== ST.READY) continue;
+    if (postBlocked_(r)) { blocked++; continue; }
     ready++;
-    if (!row && cellText_(r, C.DATE) <= today) row = r;
+    var d = validDate_(cellText_(r, C.DATE));
+    if (!d) { badDate++; continue; } // تاريخ فاضي أو غلط: مش مستحق (والمقارنة النصية ماتعتبرهوش مستحق)
+    if (d <= today) cands.push({ row: r, date: d });
   }
-  if (!row) {
-    tg_('sendMessage', { chat_id: props_().getProperty('CHAT_ID'), text: '⚠️ مفيش بوست جاهز لبوست النهارده. محتاجين بوستات جديدة في الجدول.' });
+  // أقدم تاريخ مستحق الأول، ولو التاريخ واحد فالصف الأعلى الأول
+  cands.sort(function (a, b) { return a.date < b.date ? -1 : (a.date > b.date ? 1 : a.row - b.row); });
+  var extra = (blocked ? '\n⛔ فيه ' + blocked + ' بوست موقوف بسبب بيانات بايظة (شوف عمود الملاحظات).' : '') +
+    (badDate ? '\n📅 فيه ' + badDate + ' بوست "جاهز" بتاريخ فاضي أو مش بصيغة yyyy-MM-dd فاتساب.' : '');
+  if (!cands.length) {
+    SEND_NEXT_REASON_ = 'مفيش بوست جاهز بتاريخ النهارده أو قبله.' + extra; SEND_NEXT_KIND_ = 'none';
+    notifySafe_('⚠️ مفيش بوست جاهز لبوست النهارده. محتاجين بوستات جديدة في الجدول.' + extra);
     return false;
   }
-  sendForApproval_(row);
-  if (ready - 1 <= num_('LOW_READY_ALERT')) {
-    var low = { chat_id: props_().getProperty('CHAT_ID'), text: '📌 فاضل ' + (ready - 1) + ' بوستات جاهزة بعد ده. وقت دفعة جديدة قرّب.' };
+  var sent = 0, problems = [], tries = 0, stopReason = '';
+  for (var i = 0; i < cands.length && tries < MAX_SEND_TRIES; i++) {
+    tries++;
+    var res = sendForApproval_(cands[i].row);
+    if (res.ok) { sent = cands[i].row; break; }
+    problems.push('بوست رقم ' + cellText_(cands[i].row, C.NUM) + ' (صف ' + cands[i].row + '): ' + res.reason);
+    if (res.kind === 'data') { ready--; continue; } // الصف ده اتوقف، نجرب اللي بعده
+    stopReason = res.kind; // مؤقت أو إعدادات: مانجربش صفوف تانية دلوقتي عشان مانضغطش على تيليجرام
+    break;
+  }
+  if (!sent) {
+    SEND_NEXT_REASON_ = 'ما اتبعتش بوست للموافقة:\n• ' + problems.join('\n• '); SEND_NEXT_KIND_ = stopReason || 'data';
+    notifySafe_('❌ بوست النهارده ما اتبعتش للموافقة.\n• ' + problems.join('\n• ') +
+      (stopReason ? '\n\nالمشكلة دي مؤقتة أو في إعدادات تيليجرام، فالبوست فاضل "جاهز". لما تتحل ابعت /post.' :
+        '\n\nالصفوف دي اتوقفت لحد ما تصلّح بياناتها (التفاصيل في عمود الملاحظات).'));
+    return false;
+  }
+  if (problems.length) notifySafe_('⚠️ اتخطّيت بوستات بياناتها بايظة وبعتّ اللي بعدها:\n• ' + problems.join('\n• ') + '\n\nالتفاصيل وطريقة الإصلاح في عمود الملاحظات.');
+  // تنبيه قلة البوستات: بيتحسب بس بعد ما الإرسال نجح فعلًا
+  var left = ready - 1;
+  if (left <= num_('LOW_READY_ALERT')) {
+    var low = { chat_id: props_().getProperty('CHAT_ID'), text: '📌 فاضل ' + left + ' بوستات جاهزة بعد ده. وقت دفعة جديدة قرّب.' };
     if (on_('AI_ENABLED')) low.reply_markup = JSON.stringify({ inline_keyboard: [[{ text: '💡 اقترح 5 أفكار', callback_data: 'aid:5' }]] });
-    tg_('sendMessage', low);
+    tgTry_(function () { return tg_('sendMessage', low); });
   }
   return true;
 }
 
+// بترجع { ok: true } أو { ok: false, kind: 'data' | 'temp' | 'config', reason }
+// الحالة بتتغير لـ "اتبعت للموافقة" بس لما كل رسايل تيليجرام (الصورة + الكابشن + الزراير) توصل فعلًا
 function sendForApproval_(row) {
   var chat = props_().getProperty('CHAT_ID');
   var caption = ensureHashtags_(cellText_(row, C.CAPTION));
-  var blob = DriveApp.getFileById(cellText_(row, C.IMG)).getBlob();
+  var imgId = cellText_(row, C.IMG).trim();
+  var fail = function (kind, reason) {
+    var line = kind === 'data'
+      ? blockMarker_(postPrint_(row)) + ' ' + stamp_() + ': ' + reason + ' — صلّح ID الصورة أو الكابشن وهيرجع لوحده، أو امسح السطر ده لو صلّحت حاجة تانية (زي صلاحية الملف).'
+      : '⚠️ ' + stamp_() + ': الإرسال للموافقة فشل (' + (kind === 'config' ? 'إعدادات تيليجرام' : 'مؤقت') + '): ' + reason + ' — الصف لسه شغال وهيتعاد.';
+    try { appendNote_(cell_(row, C.NOTES), line); } catch (e) { Logger.log('ملاحظة ما اتكتبتش: ' + e.message); }
+    return { ok: false, kind: kind, reason: reason };
+  };
+  if (!imgId) return fail('data', 'مفيش ID صورة في عمود F');
+  var blob;
+  try {
+    blob = DriveApp.getFileById(imgId).getBlob();
+  } catch (e) {
+    var dk = driveFailKind_(e);
+    return fail(dk, (dk === 'data' ? 'الصورة مش موجودة على Drive أو ID غلط أو مفيش صلاحية (ID: ' + imgId + ')' : 'Drive مش متاح دلوقتي') + ': ' + e.message);
+  }
   var keyboard = JSON.stringify({ inline_keyboard: [
     [{ text: '✅ انشر', callback_data: 'ok:' + row }, { text: '✏️ تعديل', callback_data: 'ed:' + row }],
     [{ text: '⏭ أجّل لبكرة', callback_data: 'sk:' + row }]
   ]});
-  var tgCaption = caption.length <= 1000 ? caption : '';
-  var res = tgPhoto_(chat, blob, tgCaption, caption.length <= 1000 ? keyboard : null);
-  if (!tgCaption) {
-    res = tg_('sendMessage', { chat_id: chat, text: caption, reply_markup: keyboard });
+  var fits = caption.length <= 1000;
+  var res = tgTry_(function () { return tgPhoto_(chat, blob, fits ? caption : '', fits ? keyboard : null); });
+  if (res.ok !== true) return fail(tgFailKind_(res), 'تيليجرام رفض الصورة: ' + tgDesc_(res));
+  if (!fits) {
+    var photoId = res.result ? res.result.message_id : 0;
+    res = tgTry_(function () { return tg_('sendMessage', { chat_id: chat, text: caption, reply_markup: keyboard }); });
+    if (res.ok !== true) {
+      // الصورة وصلت من غير كابشن وزراير: نمسحها عشان مايفضلش في الشات صورة يتيمة
+      if (photoId) tgTry_(function () { return tg_('deleteMessage', { chat_id: chat, message_id: photoId }); });
+      return fail(tgFailKind_(res), 'الصورة اتبعتت بس الكابشن والزراير ما اتبعتوش: ' + tgDesc_(res));
+    }
   }
   cell_(row, C.STATUS).setValue(ST.SENT);
-  if (res && res.result) cell_(row, C.TGMSG).setValue(res.result.message_id);
+  if (res.result) cell_(row, C.TGMSG).setValue(res.result.message_id);
+  return { ok: true };
 }
 
 /* ---------- استقبال ضغطات Telegram ---------- */
@@ -428,7 +558,9 @@ function handleUpdate_(u) {
     props_().deleteProperty('EDIT_ROW');
     if (typeof lnLogEdit_ === 'function') lnLogEdit_('بوست', cellText_(editRow, C.NUM), lnBefore, cellText_(editRow, C.CAPTION), 'تيليجرام'); // Learning.gs
     notify_('تمام، ده الكابشن المعدّل:');
-    sendForApproval_(editRow);
+    var er = sendForApproval_(editRow);
+    if (!er.ok) notifySafe_('❌ الكابشن المعدّل اتحفظ في الشيت بس ما اتبعتش للموافقة: ' + er.reason +
+      (er.kind === 'data' ? '\nصلّح البيانات وابعت الكابشن تاني من زرار ✏️ تعديل.' : '\nجرّب تاني بعد شوية من زرار ✏️ تعديل.'));
   } else if (text === '/post') {
     sendNext_(cairoDate_());
   } else if (text === '/start' || text === '/help') {

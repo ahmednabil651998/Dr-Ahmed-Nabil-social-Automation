@@ -23,7 +23,7 @@ function makeEnv(opts){
   const log={tg:[],fbPosts:[],graph:[],reel:[]};
   const net=opts.net||{};
   let docLockHeld=!!opts.docLockHeld;
-  const ctx={console,JSON,Math,
+  const ctx={console,JSON,Math,Logger:{log(){}},
    SpreadsheetApp:{getActive:()=>({getSheetByName:n=>sheets[n]||null,insertSheet:n=>{if(net.insertFails)throw new Error('insert denied');return add(n,[])}}),getUi:()=>({alert(){}})},
    PropertiesService:{getScriptProperties:()=>({getProperty:k=>props[k]===undefined?null:props[k],setProperty:(k,v)=>{props[k]=String(v)},deleteProperty:k=>{delete props[k]},getProperties:()=>props})},
    LockService:{getScriptLock:()=>({tryLock:()=>true,releaseLock(){}}),getDocumentLock:()=>({tryLock:()=>!docLockHeld&&(docLockHeld=true),releaseLock(){docLockHeld=false}})},
@@ -32,7 +32,7 @@ function makeEnv(opts){
      if(tz==='UTC'&&f==='yyyy-MM-dd')return d.toISOString().slice(0,10);
      return f==='H'?String(H):f==='u'?String(t.getUTCDay()||7):f==='yyyy-MM-dd'?`${Y}-${M}-${D}`:f==='yyyy-ww'?'2026-47':`${Y}-${M}-${D} ${p(H)}:${mi}`},
      parseDate:(s)=>{const[a,b]=s.split(' ');const[y,m,dd]=a.split('-');const[h,mi]=b.split(':');return new Date(Date.UTC(+y,+m-1,+dd,+h-2,+mi))},
-     base64EncodeWebSafe:x=>'b',sleep(){},computeDigest:()=>[1],DigestAlgorithm:{MD5:1},newBlob:()=>({})},
+     base64EncodeWebSafe:x=>'b',sleep(){},computeDigest:()=>[1],DigestAlgorithm:{MD5:1},Charset:{UTF_8:"UTF-8"},newBlob:()=>({})},
    DriveApp:{getFileById:()=>({getBlob:()=>({getBytes:()=>[],setBytes(){},getContentType:()=>'image/png'})})},
    ScriptApp:{getProjectTriggers:()=>[{getHandlerFunction:()=>'dailyJob'},{getHandlerFunction:()=>'pollTelegram'}]},
    CacheService:{getScriptCache:()=>({get:()=>null,put(){}})},

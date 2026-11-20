@@ -85,28 +85,65 @@ function reelsDailyJob_(now) {
 }
 
 function sendReelNow() {
-  if (!sendNextReel_(cairoDate_())) SpreadsheetApp.getUi().alert('مفيش ريل جاهز بتاريخ النهارده أو قبله.');
+  var today = cairoDate_();
+  if (!readyReelRows_(today).length) { SpreadsheetApp.getUi().alert('مفيش ريل جاهز بتاريخ النهارده أو قبله.'); return; }
+  if (!sendNextReel_(today)) SpreadsheetApp.getUi().alert('الريل ما اتبعتش للموافقة. السبب اتبعت على تيليجرام واتكتب في عمود الملاحظات.');
+}
+
+function reelPrint_(row) { return dataPrint_(['reel', rtext_(row, RC.VIDEO), rtext_(row, RC.TITLE), rtext_(row, RC.CAPTION), rtext_(row, RC.TOPIC)]); }
+// الريل موقوف لو في الملاحظات علامة إيقاف بنفس بصمة بياناته الحالية (Code.gs: blockMarker_)
+function reelBlocked_(row) { return rtext_(row, RC.NOTES).indexOf(blockMarker_(reelPrint_(row))) !== -1; }
+
+// كل الريلز الجاهزة المستحقة (تاريخ صحيح yyyy-MM-dd <= today)، أقدم تاريخ الأول، ومن غير الموقوفة
+function readyReelRows_(today) {
+  var s = rsheet_(), out = [];
+  if (!s) return out;
+  for (var r = 2; r <= s.getLastRow(); r++) {
+    if (rtext_(r, RC.STATUS) !== RST.READY) continue;
+    var d = validDate_(rtext_(r, RC.DATE));
+    if (!d || d > today || reelBlocked_(r)) continue;
+    out.push({ row: r, date: d });
+  }
+  out.sort(function (a, b) { return a.date < b.date ? -1 : (a.date > b.date ? 1 : a.row - b.row); });
+  return out;
 }
 
 function nextReadyReel_(today) {
-  var s = rsheet_();
-  if (!s) return 0;
-  for (var r = 2; r <= s.getLastRow(); r++) {
-    if (rtext_(r, RC.STATUS) === RST.READY && rtext_(r, RC.DATE) <= today) return r;
-  }
-  return 0;
+  var list = readyReelRows_(today);
+  return list.length ? list[0].row : 0;
 }
 
 function sendNextReel_(today) {
-  var row = nextReadyReel_(today);
-  if (!row) return false;
-  sendReelForApproval_(row);
-  return true;
+  var list = readyReelRows_(today);
+  if (!list.length) return false;
+  var problems = [], stopKind = '';
+  for (var i = 0; i < list.length && i < MAX_SEND_TRIES; i++) {
+    var res = sendReelForApproval_(list[i].row);
+    if (res.ok) {
+      if (problems.length) notifySafe_('⚠️ اتخطّيت ريلز بياناتها بايظة وبعتّ اللي بعدها:\n• ' + problems.join('\n• ') + '\n\nالتفاصيل وطريقة الإصلاح في عمود الملاحظات.');
+      return true;
+    }
+    problems.push('ريل رقم ' + rtext_(list[i].row, RC.NUM) + ' (صف ' + list[i].row + '): ' + res.reason);
+    if (res.kind !== 'data') { stopKind = res.kind; break; } // مؤقت: مانجربش ريلز تانية دلوقتي
+  }
+  notifySafe_('❌ ريل النهارده ما اتبعتش للموافقة.\n• ' + problems.join('\n• ') +
+    (stopKind ? '\n\nالمشكلة مؤقتة أو في إعدادات تيليجرام، فالريل فاضل "جاهز". لما تتحل ابعت /reel.' :
+      '\n\nالريلز دي اتوقفت لحد ما تصلّح بياناتها (التفاصيل في عمود الملاحظات).'));
+  return false;
 }
 
+// بترجع { ok: true } أو { ok: false, kind: 'data' | 'temp' | 'config', reason }
+// الحالة بتتغير لـ "اتبعت للموافقة" بس لما الفيديو والكابشن والزراير يوصلوا فعلًا
 function sendReelForApproval_(row) {
   var chat = props_().getProperty('CHAT_ID');
   var caption = reelCaption_(row);
+  var fail = function (kind, reason) {
+    var line = kind === 'data'
+      ? blockMarker_(reelPrint_(row)) + ' ' + stamp_() + ': ' + reason + ' — صلّح ID الفيديو أو الكابشن/العنوان وهيرجع لوحده، أو امسح السطر ده لو صلّحت حاجة تانية (زي صلاحية الملف).'
+      : '⚠️ ' + stamp_() + ': الإرسال للموافقة فشل (' + (kind === 'config' ? 'إعدادات تيليجرام' : 'مؤقت') + '): ' + reason + ' — الريل لسه شغال وهيتعاد.';
+    try { appendNote_(rcell_(row, RC.NOTES), line); } catch (e) { Logger.log('ملاحظة ما اتكتبتش: ' + e.message); }
+    return { ok: false, kind: kind, reason: reason };
+  };
   var keyboard = JSON.stringify({ inline_keyboard: [
     [{ text: '✅ انشر الريل', callback_data: 'rok:' + row }, { text: '✏️ تعديل الكابشن', callback_data: 'red:' + row }],
     [{ text: '⏭ أجّل لبكرة', callback_data: 'rsk:' + row }]
@@ -114,21 +151,26 @@ function sendReelForApproval_(row) {
   var head = '🎬 ريل رقم ' + rtext_(row, RC.NUM) + ' — ' + rtext_(row, RC.TITLE);
   var full = head + '\n\n' + caption;
   var fits = full.length <= 1000;
-  var res;
+  var blob;
   try {
-    res = tgVideo_(chat, reelBlob_(row), fits ? full : head, fits ? keyboard : null);
+    blob = reelBlob_(row); // بترمي لو مفيش ID أو الملف مش موجود أو أكبر من 50 ميجا
   } catch (e) {
-    rcell_(row, RC.NOTES).setValue(e.message);
-    notify_('❌ ريل رقم ' + rtext_(row, RC.NUM) + ': ' + e.message);
-    return;
+    var dk = driveFailKind_(e);
+    return fail(dk, (dk === 'data' ? 'الفيديو مش متاح (ID: ' + rtext_(row, RC.VIDEO) + ')' : 'Drive مش متاح دلوقتي') + ': ' + e.message);
   }
-  if (!res || !res.ok) {
-    notify_('❌ الريل ما اتبعتش على Telegram: ' + (res && res.description ? res.description : 'سبب غير معروف'));
-    return;
+  var res = tgTry_(function () { return tgVideo_(chat, blob, fits ? full : head, fits ? keyboard : null); });
+  if (res.ok !== true) return fail(tgFailKind_(res), 'تيليجرام رفض الفيديو: ' + tgDesc_(res));
+  if (!fits) {
+    var videoMsg = res.result ? res.result.message_id : 0;
+    res = tgTry_(function () { return tg_('sendMessage', { chat_id: chat, text: caption, reply_markup: keyboard }); });
+    if (res.ok !== true) {
+      if (videoMsg) tgTry_(function () { return tg_('deleteMessage', { chat_id: chat, message_id: videoMsg }); });
+      return fail(tgFailKind_(res), 'الفيديو اتبعت بس الكابشن والزراير ما اتبعتوش: ' + tgDesc_(res));
+    }
   }
-  if (!fits) res = tg_('sendMessage', { chat_id: chat, text: caption, reply_markup: keyboard });
   rcell_(row, RC.STATUS).setValue(RST.SENT);
-  if (res && res.result) rcell_(row, RC.TGMSG).setValue(res.result.message_id);
+  if (res.result) rcell_(row, RC.TGMSG).setValue(res.result.message_id);
+  return { ok: true };
 }
 
 /* ---------- ضغطات ورسايل Telegram الخاصة بالريلز ---------- */
@@ -172,7 +214,9 @@ function handleReelMessage_(text) {
     props_().deleteProperty('REEL_EDIT_ROW');
     if (typeof lnLogEdit_ === 'function') lnLogEdit_('ريل', rtext_(editRow, RC.NUM), lnBefore, text.trim(), 'تيليجرام'); // Learning.gs
     notify_('تمام، ده الريل بالكابشن المعدّل:');
-    sendReelForApproval_(editRow);
+    var er = sendReelForApproval_(editRow);
+    if (!er.ok) notifySafe_('❌ كابشن الريل المعدّل اتحفظ في الشيت بس ما اتبعتش للموافقة: ' + er.reason +
+      (er.kind === 'data' ? '\nصلّح البيانات وابعت الكابشن تاني من زرار ✏️ تعديل الكابشن.' : '\nجرّب تاني بعد شوية من زرار ✏️ تعديل الكابشن.'));
     return true;
   }
   var retry = /^\/retry(\d+)$/.exec(text);
@@ -183,7 +227,9 @@ function handleReelMessage_(text) {
     return true;
   }
   if (text === '/reel') {
-    if (!sendNextReel_(cairoDate_())) notify_('مفيش ريل جاهز بتاريخ النهارده أو قبله.');
+    // لو فيه ريل والإرسال فشل، sendNextReel_ بتبعت السبب بنفسها
+    if (!readyReelRows_(cairoDate_()).length) notify_('مفيش ريل جاهز بتاريخ النهارده أو قبله.');
+    else sendNextReel_(cairoDate_());
     return true;
   }
   return false;
@@ -385,7 +431,12 @@ function uploadFbReel_(row, state) {
 
 function fbJson_(resp) {
   var j = JSON.parse(resp.getContentText() || '{}');
-  if (j.error) throw new Error(j.error.message + (j.error.code === 190 ? '\nتوكن فيسبوك انتهى. شغّل "2) ربط فيسبوك".' : ''));
+  if (j.error) {
+    var err = new Error(j.error.message + (j.error.code === 190 ? '\nتوكن فيسبوك انتهى. شغّل "2) ربط فيسبوك".' : ''));
+    err.fbCode = Number(j.error.code) || 0; // نفس الرسالة زي الأول، والكود بيتحفظ عشان Analytics.gs تفرّق التوكن عن المقاييس
+    err.fbSubcode = Number(j.error.error_subcode) || 0;
+    throw err;
+  }
   return j;
 }
 

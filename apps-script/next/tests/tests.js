@@ -11,7 +11,7 @@ const msg=(text,id)=>({update_id:id||1,message:{chat:{id:1},text}});
 // 1) فشل إرسال تيليجرام (انقطاع) الساعة 5، وبعدين المحاولة المتأخرة
 let e=makeEnv({files,posts:posts(),now:'2026-11-18T15:05:00Z',net:{tgThrow:true}});
 let threw=false;try{e.ctx.dailyJob()}catch(x){threw=true}
-check('1a تيليجرام واقع الساعة 5: dailyJob بيقف بخطأ، والبوست يفضل جاهز',threw&&st(e,2)==='جاهز'&&!e.props.LAST_SENT_DATE);
+check('1a تيليجرام واقع الساعة 5: dailyJob ما بيقفش بخطأ، والبوست يفضل جاهز، والمحاولة المتأخرة لسه متاحة',!threw&&st(e,2)==='جاهز'&&!e.props.LAST_SENT_DATE&&!e.props.LAST_CATCHUP_DATE);
 e.net.tgThrow=false;e.setNow('2026-11-18T16:05:00Z');e.ctx.dailyJob();
 check('1b الساعة 6: المحاولة المتأخرة بتبعت بوست 3 مرة واحدة',st(e,2)==='اتبعت للموافقة'&&e.props.LAST_SENT_DATE==='2026-11-18',e.log.tg.filter(x=>/⏰/.test(x)).length+' رسالة ⏰');
 e.setNow('2026-11-18T17:05:00Z');const n1=e.log.tg.length;e.ctx.dailyJob();
@@ -19,7 +19,9 @@ check('1c الساعة 7: مفيش إرسال تاني',e.log.tg.length===n1&&st
 
 // 1d تيليجرام رد بخطأ HTTP (ok:false) — سلوك موجود قبل كده
 e=makeEnv({files,posts:posts(),now:'2026-11-18T15:05:00Z',net:{tgHttpError:true}});e.ctx.dailyJob();
-check('1d (قديم) تيليجرام رجّع خطأ: الحالة بتتعلّم "اتبعت" مع إن الرسالة ما وصلتش',st(e,2)==='اتبعت للموافقة','موجود في الكود الشغال، والمحاولة المتأخرة مش بتغطيه، ومهمة Claude 6:07 بتغطيه');
+check('1d تيليجرام رجّع خطأ (ok:false): الحالة تفضل "جاهز"، وLAST_SENT_DATE ما يتسجلش',st(e,2)==='جاهز'&&!e.props.LAST_SENT_DATE&&!e.props.LAST_CATCHUP_DATE);
+e.net.tgHttpError=false;e.setNow('2026-11-18T16:05:00Z');e.ctx.dailyJob();
+check('1e بعد خطأ تيليجرام الساعة 5: المحاولة المتأخرة الساعة 6 بتبعت البوست مرة واحدة',st(e,2)==='اتبعت للموافقة'&&e.props.LAST_SENT_DATE==='2026-11-18');
 
 // 2) فشل النشر على فيسبوك (خطأ من Meta)
 e=makeEnv({files,posts:[H,['3','2026-11-18','اتبعت للموافقة','h','c','img']],net:{fbError:true},updates:[cb('ok:2')]});

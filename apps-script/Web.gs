@@ -73,14 +73,16 @@ function dashboardHtml_() {
   for (var r = 2; r <= s.getLastRow(); r++) {
     var st = cellText_(r, C.STATUS), dt = cellText_(r, C.DATE);
     if (st === ST_IDEA) ideas++;
-    if (st === ST.READY) ready++;
-    if (cal[dt]) cal[dt].push(['📝', cellText_(r, C.HOOK) || ('بوست ' + cellText_(r, C.NUM)), st]);
+    var stop = st === ST.READY && postBlocked_(r); // موقوف تلقائي لحد ما بياناته تتصلّح
+    if (st === ST.READY && !stop && validDate_(dt)) ready++; // اللي تاريخه فاضي/غلط مش هيتبعت
+    if (cal[dt]) cal[dt].push(['📝', cellText_(r, C.HOOK) || ('بوست ' + cellText_(r, C.NUM)), stop ? st + ' ⛔ موقوف' : st]);
   }
   var rs = rsheet_(), readyR = 0;
   if (rs) for (var q = 2; q <= rs.getLastRow(); q++) {
     var rst = rtext_(q, RC.STATUS), rdt = rtext_(q, RC.DATE);
-    if (rst === RST.READY) readyR++;
-    if (cal[rdt]) cal[rdt].push(['🎬', rtext_(q, RC.TITLE) || ('ريل ' + rtext_(q, RC.NUM)), rst]);
+    var rstop = rst === RST.READY && reelBlocked_(q);
+    if (rst === RST.READY && !rstop && validDate_(rdt)) readyR++;
+    if (cal[rdt]) cal[rdt].push(['🎬', rtext_(q, RC.TITLE) || ('ريل ' + rtext_(q, RC.NUM)), rstop ? rst + ' ⛔ موقوف' : rst]);
   }
   var names = ['الحد', 'الاتنين', 'التلات', 'الأربع', 'الخميس', 'الجمعة', 'السبت'];
   var calHtml = days.map(function (d) {
