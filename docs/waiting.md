@@ -67,7 +67,7 @@
 ## 2026-11-20
 - [x] **كومنتات يوتيوب** — شغال 2026-11-20: `YT_REFRESH_TOKEN` اتجدد بـ scopes `youtube` + `youtube.force-ssl` (حساب 998)، و`ytCommentsTest` لقى 49 كومنت. `Comments.gs` بيجيب كومنتات كل فيديوهات القناة آخر `COMMENTS_DAYS` يوم، ونفس زراير تيليجرام، بمفتاح `YT_COMMENTS_ENABLED`. (ملحوظة: script.google.com كان مش بيفتح بـ DNS مزوّد النت؛ الحل Secure DNS = Google في كروم.)
 - [x] **دفعة بوستات 21→25 نوفمبر (كانت في `content/drafts/`): اتلغت، وملفاتها اتمسحت من الريبو.** د. أحمد مش عاوزها. بدالها بوستات 6→10 في الجدول، جاهزة بتواريخ 21→25 نوفمبر.
-- [x] **صور البوستات:** الصور بيعملها ChatGPT بس (أي حاجة في الصورة)، والتفاصيل في `instructions/daily-post.md`. الطريقة الأولى (`tools/mkpost.py`) متوقفة. Cloudflare FLUX بتفضل **احتياطي** (قرار د. أحمد 2026-11-20، شوف `IMAGES_ENABLED` فوق).
+- [x] **صور البوستات:** الصور بيعملها ChatGPT بس (أي حاجة في الصورة)، والتفاصيل في `instructions/daily-post.md`. الطريقة الأولى (`tools/mkpost.py`) اتشالت من الريبو (د. أحمد مش بيستخدمها). Cloudflare FLUX بتفضل **احتياطي** (قرار د. أحمد 2026-11-20، شوف `IMAGES_ENABLED` فوق).
 
 ## 2026-11-19
 - [x] `COMMENTS_ENABLED` + `IG_COMMENTS_ENABLED` — اتفعّلوا (كومنتات كل بوستات الصفحة على فيسبوك + إنستجرام، `COMMENTS_SCOPE` = `all` افتراضي).
