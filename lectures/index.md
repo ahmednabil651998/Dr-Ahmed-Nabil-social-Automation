@@ -66,8 +66,10 @@
 | 2026-09-21 | Lesson 2 — Chemical Properties of Water | `1sec/2026-09-21_l2_VP-cJMAkYIs.md` |
 | 2026-09-25 | Lesson 3 part 1 — Physical Properties (units, density) | `1sec/2026-09-25_l3-p1_YylMwIunm8E.md` |
 | 2026-09-29 | Lesson 3 part 2 — Heat & temperature | `1sec/2026-09-29_l3-p2_WlUcVYdA9Oc.md` |
+| 2026-10-09 | Lesson 5 — Biological Importance of Water | `1sec/2026-10-09_l5_PgjW7d_i-7U.md` |
+| 2026-10-17 | مراجعة أكتوبر (Lessons 1→5) | `1sec/2026-10-17_revision-oct_jy68vI4VJAg.md` |
 
-**لسه:** Lesson 1 (`vOGzt8L_EKE`)، Lesson 4 (`Zk717tcqIn4` — اتسحب واتقرا، رجع جوه الشات مش كملف)، Lesson 5 (`PgjW7d_i-7U`)، 6 (`x9w9rbqyhrE`)، 7 (`iLIcSM-CzKg`)، 8 (`wbSSKjJQPxA`)، 9 (`mUb5r34l3dw`)، 10 (`ksWnsVXidok`)، مراجعة أكتوبر (`jy68vI4VJAg`).
+**لسه:** Lesson 1 (`vOGzt8L_EKE`)، Lesson 4 (`Zk717tcqIn4` — اتسحب واتقرا، رجع جوه الشات مش كملف)، 6 (`x9w9rbqyhrE`)، 7 (`iLIcSM-CzKg`)، 8 (`wbSSKjJQPxA`)، 9 (`mUb5r34l3dw`)، 10 (`ksWnsVXidok`).
 > ⚠️ vidIQ بيرجّع الفيديوهات اللي أقل من حوالي ساعة وربع **جوه الشات** مش كملف، فما بتتحفظش من غير ما تتكتب تاني بالكامل (مكلف). الحل المقترح: نسحبها من يوتيوب ببلاش عن طريق كروم (سكربت بينزّل ملف الترانسكريبت على كمبيوتر د. أحمد، وبعدين يتنقل للريبو) — محتاج موافقته على تنزيل الملفات.
 
 ## تانية ثانوي
