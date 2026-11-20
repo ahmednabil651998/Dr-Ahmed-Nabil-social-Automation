@@ -141,9 +141,17 @@ function analyticsRows_() {
   var a = asheet_();
   if (!a || a.getLastRow() < 2) return [];
   return a.getRange(2, 1, a.getLastRow() - 1, AC.ENG).getValues().map(function (v) {
-    return { platform: v[0], kind: v[1], num: v[2], id: v[3], link: v[4], date: String(v[5]), likes: Number(v[7]) || 0,
+    return { platform: v[0], kind: v[1], num: v[2], id: v[3], link: v[4], date: analyticsDate_(v[5]), likes: Number(v[7]) || 0,
       comments: Number(v[8]) || 0, shares: Number(v[9]) || 0, views: Number(v[10]) || 0, eng: Number(v[11]) || 0 };
   });
+}
+
+// الشيت بيحوّل "yyyy-MM-dd HH:mm" لتاريخ حقيقي لوحده، و String(Date) بيطلع "Mon Nov 16 2026 ..."
+// فـ daysAgo_ و bestTime_ كانوا بيشوفوا كل الأرقام قديمة (التقرير الأسبوعي: "مفيش أرقام كفاية").
+// هنا بنرجّعه نص "yyyy-MM-dd HH:mm" بتوقيت القاهرة في الحالتين.
+function analyticsDate_(v) {
+  if (Object.prototype.toString.call(v) === '[object Date]') return isNaN(v.getTime()) ? '' : Utilities.formatDate(v, TZ, 'yyyy-MM-dd HH:mm');
+  return String(v === null || v === undefined ? '' : v).replace(/^'/, '').trim();
 }
 
 function weeklyReport_() {
