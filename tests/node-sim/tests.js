@@ -351,6 +351,51 @@ test('41 رسالة خطأ Meta في الملخص زي ما هي (أول سطر 
   return expect({ same: /فيسبوك بوست 1: Unsupported get request\. Object with ID FBP1 does not exist/.test(m) });
 });
 
+/* ===== 12) تاريخ النشر في Analytics لما الشيت يحوّله لتاريخ (fix/production-safety-v2) ===== */
+function anDate(daysAgo, h) { var x = new Date(Date.now() - daysAgo * 86400000); x.setUTCHours(h - 2, 0, 0, 0); return x; }
+function anRowsDate() { var rows = [AN_H]; [[1,19,3],[2,18,9],[3,17,6],[4,19,12]].forEach(function (r, i) { rows.push(['فيسبوك','بوست',String(i+1),'P'+i,'https://fb/'+i, anDate(r[0], r[1]), anDate(0,12), r[2], 0, 0, 100, r[2]]); }); return rows; }
+test('42 التقرير الأسبوعي: تاريخ النشر متخزن كتاريخ (Date) ⇒ التقرير يطلع بالأرقام، مش "مفيش أرقام كفاية"', function () {
+  var e = env({ sheets: { Posts: [POST_H], Analytics: anRowsDate(), Settings: postOnly([['ANALYTICS_ENABLED', 'false']]) } });
+  e.ctx.weeklyReport_();
+  var m = notifs(e)[0] || '';
+  return expect({ report: /إجمالي: 4 منشور، 30 تفاعل/.test(m), notEmpty: !/مفيش أرقام كفاية/.test(m), best: /بوست 4: 12 تفاعل/.test(m) });
+});
+test('43 analyticsRows_: التاريخ بيرجع نص yyyy-MM-dd HH:mm بتوقيت القاهرة، والنص القديم زي ما هو', function () {
+  var rows = anRowsDate(); rows.push(['فيسبوك','بوست','9','P9','l','2026-11-16 19:25','',1,0,0,0,1]);
+  var e = env({ sheets: { Posts: [POST_H], Analytics: rows, Settings: postOnly() } });
+  var all = e.ctx.analyticsRows_();
+  return expect({ fmt: /^\d{4}-\d{2}-\d{2} 19:00$/.test(all[0].date), text: all[4].date === '2026-11-16 19:25', days: e.ctx.daysAgo_(all[0].date) <= 2 && e.ctx.daysAgo_(all[0].date) >= 0 });
+});
+
+/* ===== 13) المحاولة المتأخرة مع أنواع الفشل (dailySend_) ===== */
+function at(hourCairo) { return new Date(Date.UTC(Number(TODAY.substring(0, 4)), Number(TODAY.substring(5, 7)) - 1, Number(TODAY.substring(8, 10)), hourCairo - 2, 5)); }
+function catchEnv(posts, tg, files) { return env({ sheets: { Posts: posts, Settings: settings(17, 3) }, files: files || { img1: {} }, tg: tg }); }
+test('44 تيليجرام فشل مؤقت الساعة 5 ⇒ مفيش LAST_CATCHUP_DATE، والمحاولة المتأخرة الساعة 6 بتبعته، والساعة 7 مفيش تكرار', function () {
+  var fail = true;
+  var e = catchEnv([POST_H, post(1, TODAY, READY, 'img1')], function (c, id) { if (c.method === 'sendPhoto' && fail) return { ok: false, error_code: 502, description: 'Bad Gateway' }; return { ok: true, result: { message_id: id } }; });
+  e.ctx.dailySend_(at(17));
+  var after5 = S(e, 'Posts', 2, 3) === READY && !e.props.LAST_SENT_DATE && !e.props.LAST_CATCHUP_DATE;
+  fail = false; e.ctx.dailySend_(at(18));
+  var after6 = S(e, 'Posts', 2, 3) === SENT && e.props.LAST_SENT_DATE === TODAY;
+  var n = tgMsgs(e, 'sendPhoto').length; e.ctx.dailySend_(at(19));
+  return expect({ after5: after5, after6: after6, noRepeat: tgMsgs(e, 'sendPhoto').length === n });
+});
+test('45 المحاولة المتأخرة نفسها فشلت مؤقتًا ⇒ مفيش محاولة تالتة في نفس اليوم', function () {
+  var e = catchEnv([POST_H, post(1, TODAY, READY, 'img1')], function (c, id) { if (c.method === 'sendPhoto') return { ok: false, error_code: 500, description: 'x' }; return { ok: true, result: { message_id: id } }; });
+  e.ctx.dailySend_(at(17)); e.ctx.dailySend_(at(18)); var n = tgMsgs(e, 'sendPhoto').length; e.ctx.dailySend_(at(19)); e.ctx.dailySend_(at(20));
+  return expect({ triedTwice: n === 2, noThird: tgMsgs(e, 'sendPhoto').length === 2, catchupSet: e.props.LAST_CATCHUP_DATE === TODAY, stillReady: S(e, 'Posts', 2, 3) === READY });
+});
+test('46 مفيش بوست جاهز الساعة 5 ⇒ LAST_CATCHUP_DATE يتسجل ومفيش محاولة متأخرة (زي main)', function () {
+  var e = catchEnv([POST_H, post(1, '', READY, 'img1')]);
+  e.ctx.dailySend_(at(17)); var n = notifs(e).length; e.ctx.dailySend_(at(18));
+  return expect({ catchup: e.props.LAST_CATCHUP_DATE === TODAY, noMore: notifs(e).length === n });
+});
+test('47 البوست الوحيد بياناته بايظة الساعة 5 ⇒ يتوقف، و LAST_CATCHUP_DATE يتسجل (مفيش فايدة من المحاولة المتأخرة)', function () {
+  var e = catchEnv([POST_H, post(1, TODAY, READY, 'BAD')], null, {});
+  e.ctx.dailySend_(at(17)); e.log.drive = []; e.ctx.dailySend_(at(18));
+  return expect({ catchup: e.props.LAST_CATCHUP_DATE === TODAY, notRetried: e.log.drive.length === 0, blocked: /⛔ موقوف تلقائي/.test(S(e, 'Posts', 2, 7)) });
+});
+
 /* ===== 11) Health / Web ===== */
 test('34 Health و Web بيشتغلوا، والبوست الموقوف مايتحسبش جاهز', function () {
   var e = env({ sheets: { Posts: [POST_H, post(1, addDays(-1), READY, 'BAD'), post(2, addDays(1), READY, 'i'), post(3, '', READY, 'i')], Reels: [REEL_H], Analytics: [AN_H], Settings: postOnly() }, files: { i: {} },
