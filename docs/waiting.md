@@ -4,7 +4,7 @@
 > أي جلسة Claude تبدأ من هنا، وتقول لد. أحمد على أي بند واقف من غير ما يسأل.
 > لما بند يخلص: يتعلّم `[x]` ويتكتب التاريخ، **ويتنقل لـ «🗄️ الأرشيف» آخر الملف**. فوق بيفضل المفتوح بس. أي حاجة جديدة تقف: تتضاف هنا فورًا.
 >
-> ✅ حالة المفاتيح في تاب `Settings` (آخر تحديث 2026-11-19 11:12 بالليل): **شغالين:** `HEALTH_ENABLED`، `CLAUDE_WRITER_ENABLED`، `ANALYTICS_ENABLED`، `REPORT_ENABLED`، `SNAPSHOTS_ENABLED`، `AI_ENABLED` (`gemini-3.8-flash`)، `COMMENTS_ENABLED`، `IG_COMMENTS_ENABLED`، `IG_ENABLED`، `IG_REELS_ENABLED`، `YT_COMMENTS_ENABLED`. **مقفولين:** الباقي.
+> ✅ حالة المفاتيح في تاب `Settings` (اتراجعت من الشيت 2026-11-20 الساعة 3:22 الفجر): **شغالين:** `HEALTH_ENABLED`، `CLAUDE_WRITER_ENABLED`، `ANALYTICS_ENABLED`، `REPORT_ENABLED`، `SNAPSHOTS_ENABLED`، `AI_ENABLED` (`gemini-3.8-flash`)، `COMMENTS_ENABLED`، `IG_COMMENTS_ENABLED`، `IG_ENABLED`، `IG_REELS_ENABLED`، `YT_COMMENTS_ENABLED`. **مقفولين:** الباقي.
 
 ## 📌 نكمل منين (آخر تحديث 2026-11-20 الساعة 3 الفجر)
 1. **متابعة أول نشر إنستجرام** النهارده 2026-11-20 الساعة 5، وأول كومنت يوصل تيليجرام بالرد المقترح.
